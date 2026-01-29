@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
-import { Tv, Sparkles, ArrowRight } from 'lucide-react';
-import type { TrendSynthesis, AppState } from '../../types';
+import { Tv, Sparkles, ArrowRight, Hash, Users, Palette } from 'lucide-react';
+import type { TrendSynthesis, AppState, TrendSelection } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
@@ -8,15 +8,20 @@ import { Skeleton } from '../ui/Skeleton';
 interface TrendsStepProps {
   status: AppState;
   trends: TrendSynthesis | null;
+  trendSelection: TrendSelection;
+  onToggleCategory: (category: keyof TrendSelection) => void;
   onNext: () => void;
 }
 
 export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
   status,
   trends,
+  trendSelection,
+  onToggleCategory,
   onNext,
 }) {
   const isLoading = status === 'SYNTHESIZING';
+  const hasAnySelected = Object.values(trendSelection).some(Boolean);
 
   return (
     <Card glass className="p-4 md:p-6 lg:p-8 shadow-xl">
@@ -46,9 +51,18 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
               <h3 className="text-xl md:text-2xl font-bold">Checkpoint 2: Trend Synthesis</h3>
               <p className="text-gray-500 text-sm">
                 AI has mapped current viral media aesthetics to your product DNA.
+                {!hasAnySelected && (
+                  <span className="text-amber-600 font-medium"> Select at least one trend category.</span>
+                )}
               </p>
             </div>
-            <Button onClick={onNext} size="lg" rightIcon={<ArrowRight size={18} />} className="w-full md:w-auto">
+            <Button
+              onClick={onNext}
+              size="lg"
+              rightIcon={<ArrowRight size={18} />}
+              className="w-full md:w-auto"
+              disabled={!hasAnySelected}
+            >
               <span className="hidden sm:inline">Confirm & Architect Briefs</span>
               <span className="sm:hidden">Next</span>
             </Button>
@@ -59,13 +73,19 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
               {/* Entertainment Narrative */}
               <div className="space-y-4 md:space-y-6">
-                <div className="p-4 md:p-6 bg-indigo-50 rounded-2xl space-y-3 md:space-y-4">
-                  <div className="flex items-center gap-2 text-indigo-700">
+                <div className={`p-4 md:p-6 bg-indigo-50 rounded-2xl space-y-3 md:space-y-4 transition-opacity ${!trendSelection.entertainmentNarrative ? 'opacity-50' : ''}`}>
+                  <label className="flex items-center gap-2 text-indigo-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={trendSelection.entertainmentNarrative}
+                      onChange={() => onToggleCategory('entertainmentNarrative')}
+                      className="w-4 h-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+                    />
                     <Tv size={18} aria-hidden="true" />
                     <span className="text-xs font-bold uppercase tracking-widest">
                       Entertainment Narrative
                     </span>
-                  </div>
+                  </label>
                   <div className="space-y-4">
                     {trends.entertainmentNarrative.map((category) => (
                       <div key={category.category}>
@@ -83,10 +103,19 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
                 </div>
 
                 {/* Sentiment Keywords */}
-                <div className="space-y-3 px-2">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    Visual Sentiment Keywords
-                  </h4>
+                <div className={`space-y-3 px-2 transition-opacity ${!trendSelection.sentimentKeywords ? 'opacity-50' : ''}`}>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={trendSelection.sentimentKeywords}
+                      onChange={() => onToggleCategory('sentimentKeywords')}
+                      className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <Hash size={16} aria-hidden="true" className="text-gray-400" />
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                      Visual Sentiment Keywords
+                    </span>
+                  </label>
                   <div
                     className="flex flex-wrap gap-2"
                     role="list"
@@ -115,9 +144,20 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
                     </span>
                   </div>
                   <dl className="space-y-4">
-                    <div>
-                      <dt className="font-bold text-gray-900 text-sm">Subculture Overlap</dt>
-                      <dd className="text-sm text-gray-600 leading-relaxed mt-1">
+                    <div className={`transition-opacity ${!trendSelection.subcultureOverlap ? 'opacity-50' : ''}`}>
+                      <dt>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={trendSelection.subcultureOverlap}
+                            onChange={() => onToggleCategory('subcultureOverlap')}
+                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <Users size={16} aria-hidden="true" className="text-gray-500" />
+                          <span className="font-bold text-gray-900 text-sm">Subculture Overlap</span>
+                        </label>
+                      </dt>
+                      <dd className="text-sm text-gray-600 leading-relaxed mt-1 ml-6">
                         <ul className="list-disc pl-4 space-y-2">
                           {trends.subcultureOverlap.map((item) => (
                             <li key={item.community}>
@@ -127,9 +167,20 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
                         </ul>
                       </dd>
                     </div>
-                    <div>
-                      <dt className="font-bold text-gray-900 text-sm">Visual Aesthetic</dt>
-                      <dd className="text-sm text-gray-600 leading-relaxed mt-1">
+                    <div className={`transition-opacity ${!trendSelection.visualTrends ? 'opacity-50' : ''}`}>
+                      <dt>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={trendSelection.visualTrends}
+                            onChange={() => onToggleCategory('visualTrends')}
+                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <Palette size={16} aria-hidden="true" className="text-gray-500" />
+                          <span className="font-bold text-gray-900 text-sm">Visual Aesthetic</span>
+                        </label>
+                      </dt>
+                      <dd className="text-sm text-gray-600 leading-relaxed mt-1 ml-6">
                         <ul className="list-disc pl-4 space-y-2">
                           {trends.visualTrends.map((item) => (
                             <li key={item.trend}>

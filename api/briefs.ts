@@ -180,9 +180,10 @@ Vertical: ${sanitizeInput(analysis.vertical)}
 Core Features: ${analysis.features.map((f) => sanitizeInput(f)).join(', ')}
 
 === TRENDING INSPIRATION ===
-Entertainment Narrative: ${trends.entertainmentNarrative.map((cat) => `${cat.category}: ${cat.items.map((i) => `${i.title} - ${i.description}`).join('; ')}`).join(' | ')}
-Visual Trends: ${trends.visualTrends.map((t) => `${t.trend}: ${t.description}`).join('; ')}
-Subculture Overlap: ${trends.subcultureOverlap.map((s) => `${s.community}: ${s.visualLanguage}`).join('; ')}
+${trends.entertainmentNarrative.length > 0 ? `Entertainment Narrative: ${trends.entertainmentNarrative.map((cat) => `${cat.category}: ${cat.items.map((i) => `${i.title} - ${i.description}`).join('; ')}`).join(' | ')}` : ''}
+${trends.visualTrends.length > 0 ? `Visual Trends: ${trends.visualTrends.map((t) => `${t.trend}: ${t.description}`).join('; ')}` : ''}
+${trends.subcultureOverlap.length > 0 ? `Subculture Overlap: ${trends.subcultureOverlap.map((s) => `${s.community}: ${s.visualLanguage}`).join('; ')}` : ''}
+${trends.sentimentKeywords.length > 0 ? `Sentiment Keywords: ${trends.sentimentKeywords.join(', ')}` : ''}
 
 === STRICT RULES ===
 1. EVOLUTION, NOT RANDOM: Keep the seed icon's core metaphor intact, evolve style.

@@ -1,6 +1,13 @@
 import { useState, useCallback } from 'react';
-import type { AnalysisResult, TrendSynthesis, CreativeBrief, ScreenshotFile, AppState } from '../types';
+import type { AnalysisResult, TrendSynthesis, CreativeBrief, ScreenshotFile, AppState, TrendSelection } from '../types';
 import * as api from '../services/api';
+
+const defaultTrendSelection: TrendSelection = {
+  entertainmentNarrative: true,
+  sentimentKeywords: true,
+  subcultureOverlap: true,
+  visualTrends: true,
+};
 
 interface AnalysisState {
   status: AppState;
@@ -10,6 +17,7 @@ interface AnalysisState {
   screenshots: ScreenshotFile[];
   appInput: string;
   isExecutingAll: boolean;
+  trendSelection: TrendSelection;
 }
 
 interface UseAnalysisReturn extends AnalysisState {
@@ -25,6 +33,7 @@ interface UseAnalysisReturn extends AnalysisState {
   regenerateImage: (briefId: string, newPrompt: string) => Promise<void>;
   executeAll: () => Promise<void>;
   reset: () => void;
+  toggleTrendCategory: (category: keyof TrendSelection) => void;
 }
 
 const initialState: AnalysisState = {
@@ -35,6 +44,7 @@ const initialState: AnalysisState = {
   screenshots: [],
   appInput: '',
   isExecutingAll: false,
+  trendSelection: defaultTrendSelection,
 };
 
 export function useAnalysis(
@@ -132,6 +142,16 @@ export function useAnalysis(
     }
   }, [state.analysis, onError, onSuccess]);
 
+  const toggleTrendCategory = useCallback((category: keyof TrendSelection) => {
+    setState((prev) => ({
+      ...prev,
+      trendSelection: {
+        ...prev.trendSelection,
+        [category]: !prev.trendSelection[category],
+      },
+    }));
+  }, []);
+
   const startBriefing = useCallback(async () => {
     if (!state.analysis || !state.trends) {
       onError('Analysis and trends required before briefing');
@@ -141,7 +161,25 @@ export function useAnalysis(
     setState((prev) => ({ ...prev, status: 'BRIEFING' }));
 
     try {
-      const result = await api.createBriefs(state.analysis, state.trends);
+      // Filter trends based on selection
+      const filteredTrends: TrendSynthesis = {
+        entertainmentNarrative: state.trendSelection.entertainmentNarrative
+          ? state.trends.entertainmentNarrative
+          : [],
+        sentimentKeywords: state.trendSelection.sentimentKeywords
+          ? state.trends.sentimentKeywords
+          : [],
+        subcultureOverlap: state.trendSelection.subcultureOverlap
+          ? state.trends.subcultureOverlap
+          : [],
+        visualTrends: state.trendSelection.visualTrends
+          ? state.trends.visualTrends
+          : [],
+        methodologyReasoning: state.trends.methodologyReasoning,
+        sources: state.trends.sources,
+      };
+
+      const result = await api.createBriefs(state.analysis, filteredTrends);
       setState((prev) => ({ ...prev, briefs: result, status: 'BRIEFS_REVIEW' }));
       onSuccess?.('Creative briefs generated');
     } catch (err) {
@@ -149,7 +187,7 @@ export function useAnalysis(
       onError(message);
       setState((prev) => ({ ...prev, status: 'TRENDS_REVIEW' }));
     }
-  }, [state.analysis, state.trends, onError, onSuccess]);
+  }, [state.analysis, state.trends, state.trendSelection, onError, onSuccess]);
 
   const generateImage = useCallback(
     async (briefId: string) => {
@@ -303,5 +341,6 @@ export function useAnalysis(
     regenerateImage,
     executeAll,
     reset,
+    toggleTrendCategory,
   };
 }

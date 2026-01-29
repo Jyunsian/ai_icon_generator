@@ -116,6 +116,8 @@ const App: React.FC = () => {
                   <TrendsStep
                     status={analysis.status}
                     trends={analysis.trends}
+                    trendSelection={analysis.trendSelection}
+                    onToggleCategory={analysis.toggleTrendCategory}
                     onNext={analysis.startBriefing}
                   />
                 )}

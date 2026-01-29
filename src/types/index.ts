@@ -81,6 +81,13 @@ export interface TrendSynthesis {
   sources?: GroundingSource[];
 }
 
+export interface TrendSelection {
+  entertainmentNarrative: boolean;
+  sentimentKeywords: boolean;
+  subcultureOverlap: boolean;
+  visualTrends: boolean;
+}
+
 export interface CreativeBrief {
   id: string;
   directionName: string;
