@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { AnalysisResult, TrendSynthesis, CreativeBrief, ScreenshotFile, AppState, TrendSelection } from '../types';
+import type { AnalysisResult, TrendSynthesis, CreativeBrief, ScreenshotFile, AppState, TrendSelection, TrendCategory } from '../types';
 import * as api from '../services/api';
 
 const defaultTrendSelection: TrendSelection = {
@@ -8,6 +8,13 @@ const defaultTrendSelection: TrendSelection = {
   subcultureOverlap: true,
   visualTrends: true,
 };
+
+const defaultTrendOrder: TrendCategory[] = [
+  'entertainmentNarrative',
+  'sentimentKeywords',
+  'subcultureOverlap',
+  'visualTrends',
+];
 
 interface AnalysisState {
   status: AppState;
@@ -18,6 +25,7 @@ interface AnalysisState {
   appInput: string;
   isExecutingAll: boolean;
   trendSelection: TrendSelection;
+  trendOrder: TrendCategory[];
 }
 
 interface UseAnalysisReturn extends AnalysisState {
@@ -34,6 +42,7 @@ interface UseAnalysisReturn extends AnalysisState {
   executeAll: () => Promise<void>;
   reset: () => void;
   toggleTrendCategory: (category: keyof TrendSelection) => void;
+  reorderTrends: (newOrder: TrendCategory[]) => void;
 }
 
 const initialState: AnalysisState = {
@@ -45,6 +54,7 @@ const initialState: AnalysisState = {
   appInput: '',
   isExecutingAll: false,
   trendSelection: defaultTrendSelection,
+  trendOrder: defaultTrendOrder,
 };
 
 export function useAnalysis(
@@ -152,6 +162,10 @@ export function useAnalysis(
     }));
   }, []);
 
+  const reorderTrends = useCallback((newOrder: TrendCategory[]) => {
+    setState((prev) => ({ ...prev, trendOrder: newOrder }));
+  }, []);
+
   const startBriefing = useCallback(async () => {
     if (!state.analysis || !state.trends) {
       onError('Analysis and trends required before briefing');
@@ -232,10 +246,13 @@ export function useAnalysis(
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Image generation failed';
         onError(`Render Error: ${message}`);
+        // Only clear LOADING state, preserve existing image
         setState((prev) => ({
           ...prev,
           briefs: prev.briefs.map((b) =>
-            b.id === briefId ? { ...b, generatedImage: undefined } : b
+            b.id === briefId && b.generatedImage === 'LOADING'
+              ? { ...b, generatedImage: undefined }
+              : b
           ),
         }));
       }
@@ -254,7 +271,10 @@ export function useAnalysis(
 
   const regenerateImage = useCallback(
     async (briefId: string, newPrompt: string) => {
-      // First update the prompt
+      // Store previous image before setting LOADING state
+      const previousImage = state.briefs.find((b) => b.id === briefId)?.generatedImage;
+
+      // Update the prompt and set loading state
       setState((prev) => ({
         ...prev,
         briefs: prev.briefs.map((b) =>
@@ -296,10 +316,11 @@ export function useAnalysis(
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Image generation failed';
         onError(`Render Error: ${message}`);
+        // Restore the previous image on error
         setState((prev) => ({
           ...prev,
           briefs: prev.briefs.map((b) =>
-            b.id === briefId ? { ...b, generatedImage: undefined } : b
+            b.id === briefId ? { ...b, generatedImage: previousImage } : b
           ),
         }));
       }
@@ -342,5 +363,6 @@ export function useAnalysis(
     executeAll,
     reset,
     toggleTrendCategory,
+    reorderTrends,
   };
 }

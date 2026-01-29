@@ -88,6 +88,8 @@ export interface TrendSelection {
   visualTrends: boolean;
 }
 
+export type TrendCategory = keyof TrendSelection;
+
 export interface CreativeBrief {
   id: string;
   directionName: string;

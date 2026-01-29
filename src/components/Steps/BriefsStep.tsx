@@ -251,9 +251,33 @@ const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onG
   if (view === 'adjust') {
     return (
       <Card glass className="overflow-hidden" role="listitem">
+        {/* Image Area */}
+        <div className="aspect-square bg-gray-50 flex items-center justify-center relative border-b border-gray-100 overflow-hidden">
+          {isLoading ? (
+            <SkeletonImage className="w-full h-full" />
+          ) : hasImage ? (
+            <img
+              src={brief.generatedImage}
+              alt={`Generated icon: ${brief.directionName}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-4 text-gray-400">
+              <div className="w-16 h-16 rounded-full border border-gray-200 flex items-center justify-center shadow-sm">
+                <Play fill="currentColor" size={24} className="ml-1" aria-hidden="true" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                No image yet
+              </span>
+            </div>
+          )}
+        </div>
+
         <div className="p-4 md:p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h5 className="font-bold text-base tracking-tight">Adjust Prompt</h5>
+            <h5 className="font-bold text-base tracking-tight">{brief.directionName}</h5>
             <button
               onClick={handleCancel}
               className="p-1 text-gray-400 hover:text-gray-900 transition-colors"
@@ -271,7 +295,7 @@ const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onG
               id={`prompt-${brief.id}`}
               value={editedPrompt}
               onChange={(e) => setEditedPrompt(e.target.value)}
-              className="w-full h-48 p-3 text-sm text-gray-700 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              className="w-full h-32 p-3 text-sm text-gray-700 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
               placeholder="Enter your generation prompt..."
             />
           </div>

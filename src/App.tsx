@@ -117,7 +117,9 @@ const App: React.FC = () => {
                     status={analysis.status}
                     trends={analysis.trends}
                     trendSelection={analysis.trendSelection}
+                    trendOrder={analysis.trendOrder}
                     onToggleCategory={analysis.toggleTrendCategory}
+                    onReorderTrends={analysis.reorderTrends}
                     onNext={analysis.startBriefing}
                   />
                 )}

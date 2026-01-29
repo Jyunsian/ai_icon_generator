@@ -1,6 +1,23 @@
 import React, { memo } from 'react';
-import { Tv, Sparkles, ArrowRight, Hash, Users, Palette } from 'lucide-react';
-import type { TrendSynthesis, AppState, TrendSelection } from '../../types';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Tv, Sparkles, ArrowRight, Hash, Users, Palette, GripVertical } from 'lucide-react';
+import type { TrendSynthesis, AppState, TrendSelection, TrendCategory } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
@@ -9,19 +26,206 @@ interface TrendsStepProps {
   status: AppState;
   trends: TrendSynthesis | null;
   trendSelection: TrendSelection;
+  trendOrder: TrendCategory[];
   onToggleCategory: (category: keyof TrendSelection) => void;
+  onReorderTrends: (newOrder: TrendCategory[]) => void;
   onNext: () => void;
 }
+
+interface TrendSectionProps {
+  category: TrendCategory;
+  trends: TrendSynthesis;
+  trendSelection: TrendSelection;
+  onToggleCategory: (category: keyof TrendSelection) => void;
+}
+
+const TrendSection: React.FC<TrendSectionProps> = memo(function TrendSection({
+  category,
+  trends,
+  trendSelection,
+  onToggleCategory,
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const renderContent = () => {
+    switch (category) {
+      case 'entertainmentNarrative':
+        return (
+          <div className={`p-4 md:p-6 bg-indigo-50 rounded-2xl space-y-3 md:space-y-4 transition-opacity ${!trendSelection.entertainmentNarrative ? 'opacity-50' : ''}`}>
+            <label className="flex items-center gap-2 text-indigo-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={trendSelection.entertainmentNarrative}
+                onChange={() => onToggleCategory('entertainmentNarrative')}
+                className="w-4 h-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <Tv size={18} aria-hidden="true" />
+              <span className="text-xs font-bold uppercase tracking-widest">
+                Entertainment Narrative
+              </span>
+            </label>
+            <div className="space-y-4">
+              {trends.entertainmentNarrative.map((cat) => (
+                <div key={cat.category}>
+                  <h5 className="font-semibold text-indigo-900 text-sm mb-2">{cat.category}</h5>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {cat.items.map((item) => (
+                      <li key={item.title} className="text-sm text-indigo-800">
+                        <strong>{item.title}</strong> – {item.description}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'sentimentKeywords':
+        return (
+          <div className={`space-y-3 px-2 transition-opacity ${!trendSelection.sentimentKeywords ? 'opacity-50' : ''}`}>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={trendSelection.sentimentKeywords}
+                onChange={() => onToggleCategory('sentimentKeywords')}
+                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <Hash size={16} aria-hidden="true" className="text-gray-400" />
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Visual Sentiment Keywords
+              </span>
+            </label>
+            <div
+              className="flex flex-wrap gap-2"
+              role="list"
+              aria-label="Sentiment keywords"
+            >
+              {trends.sentimentKeywords.map((keyword) => (
+                <span
+                  key={keyword}
+                  className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600"
+                  role="listitem"
+                >
+                  #{keyword}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'subcultureOverlap':
+        return (
+          <div className={`transition-opacity ${!trendSelection.subcultureOverlap ? 'opacity-50' : ''}`}>
+            <dt>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={trendSelection.subcultureOverlap}
+                  onChange={() => onToggleCategory('subcultureOverlap')}
+                  className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <Users size={16} aria-hidden="true" className="text-gray-500" />
+                <span className="font-bold text-gray-900 text-sm">Subculture Overlap</span>
+              </label>
+            </dt>
+            <dd className="text-sm text-gray-600 leading-relaxed mt-1 ml-6">
+              <ul className="list-disc pl-4 space-y-2">
+                {trends.subcultureOverlap.map((item) => (
+                  <li key={item.community}>
+                    <strong>{item.community}:</strong> {item.visualLanguage}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        );
+
+      case 'visualTrends':
+        return (
+          <div className={`transition-opacity ${!trendSelection.visualTrends ? 'opacity-50' : ''}`}>
+            <dt>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={trendSelection.visualTrends}
+                  onChange={() => onToggleCategory('visualTrends')}
+                  className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <Palette size={16} aria-hidden="true" className="text-gray-500" />
+                <span className="font-bold text-gray-900 text-sm">Visual Aesthetic</span>
+              </label>
+            </dt>
+            <dd className="text-sm text-gray-600 leading-relaxed mt-1 ml-6">
+              <ul className="list-disc pl-4 space-y-2">
+                {trends.visualTrends.map((item) => (
+                  <li key={item.trend}>
+                    <strong>{item.trend}:</strong> {item.description}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute -left-6 top-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+        aria-label={`Drag to reorder ${category}`}
+      >
+        <GripVertical size={16} />
+      </div>
+      {renderContent()}
+    </div>
+  );
+});
 
 export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
   status,
   trends,
   trendSelection,
+  trendOrder,
   onToggleCategory,
+  onReorderTrends,
   onNext,
 }) {
   const isLoading = status === 'SYNTHESIZING';
   const hasAnySelected = Object.values(trendSelection).some(Boolean);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = trendOrder.indexOf(active.id as TrendCategory);
+      const newIndex = trendOrder.indexOf(over.id as TrendCategory);
+      onReorderTrends(arrayMove(trendOrder, oldIndex, newIndex));
+    }
+  };
 
   return (
     <Card glass className="p-4 md:p-6 lg:p-8 shadow-xl">
@@ -50,7 +254,7 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
             <div className="space-y-1">
               <h3 className="text-xl md:text-2xl font-bold">Checkpoint 2: Trend Synthesis</h3>
               <p className="text-gray-500 text-sm">
-                AI has mapped current viral media aesthetics to your product DNA.
+                AI has mapped current viral media aesthetics to your product DNA. Drag sections to prioritize.
                 {!hasAnySelected && (
                   <span className="text-amber-600 font-medium"> Select at least one trend category.</span>
                 )}
@@ -70,130 +274,33 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
 
           {/* Trends Details */}
           {trends ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
-              {/* Entertainment Narrative */}
-              <div className="space-y-4 md:space-y-6">
-                <div className={`p-4 md:p-6 bg-indigo-50 rounded-2xl space-y-3 md:space-y-4 transition-opacity ${!trendSelection.entertainmentNarrative ? 'opacity-50' : ''}`}>
-                  <label className="flex items-center gap-2 text-indigo-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={trendSelection.entertainmentNarrative}
-                      onChange={() => onToggleCategory('entertainmentNarrative')}
-                      className="w-4 h-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <Tv size={18} aria-hidden="true" />
-                    <span className="text-xs font-bold uppercase tracking-widest">
-                      Entertainment Narrative
-                    </span>
-                  </label>
-                  <div className="space-y-4">
-                    {trends.entertainmentNarrative.map((category) => (
-                      <div key={category.category}>
-                        <h5 className="font-semibold text-indigo-900 text-sm mb-2">{category.category}</h5>
-                        <ul className="list-disc pl-4 space-y-1">
-                          {category.items.map((item) => (
-                            <li key={item.title} className="text-sm text-indigo-800">
-                              <strong>{item.title}</strong> – {item.description}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Sentiment Keywords */}
-                <div className={`space-y-3 px-2 transition-opacity ${!trendSelection.sentimentKeywords ? 'opacity-50' : ''}`}>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={trendSelection.sentimentKeywords}
-                      onChange={() => onToggleCategory('sentimentKeywords')}
-                      className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <Hash size={16} aria-hidden="true" className="text-gray-400" />
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                      Visual Sentiment Keywords
-                    </span>
-                  </label>
-                  <div
-                    className="flex flex-wrap gap-2"
-                    role="list"
-                    aria-label="Sentiment keywords"
-                  >
-                    {trends.sentimentKeywords.map((keyword) => (
-                      <span
-                        key={keyword}
-                        className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600"
-                        role="listitem"
-                      >
-                        #{keyword}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Visual DNA */}
-              <div className="space-y-4 md:space-y-6">
-                <div className="p-4 md:p-6 border border-gray-100 rounded-2xl space-y-3 md:space-y-4 bg-white">
-                  <div className="flex items-center gap-2 text-gray-900">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={trendOrder} strategy={verticalListSortingStrategy}>
+                <div className="space-y-4 md:space-y-6 pl-6">
+                  {/* Visual DNA header - static */}
+                  <div className="flex items-center gap-2 text-gray-900 -ml-6">
                     <Sparkles size={18} aria-hidden="true" />
                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                      Proposed Visual DNA
+                      Trend Categories (drag to reorder priority)
                     </span>
                   </div>
-                  <dl className="space-y-4">
-                    <div className={`transition-opacity ${!trendSelection.subcultureOverlap ? 'opacity-50' : ''}`}>
-                      <dt>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={trendSelection.subcultureOverlap}
-                            onChange={() => onToggleCategory('subcultureOverlap')}
-                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <Users size={16} aria-hidden="true" className="text-gray-500" />
-                          <span className="font-bold text-gray-900 text-sm">Subculture Overlap</span>
-                        </label>
-                      </dt>
-                      <dd className="text-sm text-gray-600 leading-relaxed mt-1 ml-6">
-                        <ul className="list-disc pl-4 space-y-2">
-                          {trends.subcultureOverlap.map((item) => (
-                            <li key={item.community}>
-                              <strong>{item.community}:</strong> {item.visualLanguage}
-                            </li>
-                          ))}
-                        </ul>
-                      </dd>
-                    </div>
-                    <div className={`transition-opacity ${!trendSelection.visualTrends ? 'opacity-50' : ''}`}>
-                      <dt>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={trendSelection.visualTrends}
-                            onChange={() => onToggleCategory('visualTrends')}
-                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <Palette size={16} aria-hidden="true" className="text-gray-500" />
-                          <span className="font-bold text-gray-900 text-sm">Visual Aesthetic</span>
-                        </label>
-                      </dt>
-                      <dd className="text-sm text-gray-600 leading-relaxed mt-1 ml-6">
-                        <ul className="list-disc pl-4 space-y-2">
-                          {trends.visualTrends.map((item) => (
-                            <li key={item.trend}>
-                              <strong>{item.trend}:</strong> {item.description}
-                            </li>
-                          ))}
-                        </ul>
-                      </dd>
-                    </div>
-                  </dl>
+
+                  {trendOrder.map((category) => (
+                    <TrendSection
+                      key={category}
+                      category={category}
+                      trends={trends}
+                      trendSelection={trendSelection}
+                      onToggleCategory={onToggleCategory}
+                    />
+                  ))}
                 </div>
-              </div>
-            </div>
+              </SortableContext>
+            </DndContext>
           ) : (
             <TrendsSkeleton />
           )}
