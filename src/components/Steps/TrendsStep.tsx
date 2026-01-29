@@ -19,7 +19,7 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
   const isLoading = status === 'SYNTHESIZING';
 
   return (
-    <Card glass className="p-8 shadow-xl">
+    <Card glass className="p-4 md:p-6 lg:p-8 shadow-xl">
       {isLoading ? (
         <div
           className="flex flex-col items-center justify-center py-20 gap-6"
@@ -39,26 +39,27 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-6 lg:space-y-8">
           {/* Header */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <h3 className="text-2xl font-bold">Checkpoint 2: Trend Synthesis</h3>
+              <h3 className="text-xl md:text-2xl font-bold">Checkpoint 2: Trend Synthesis</h3>
               <p className="text-gray-500 text-sm">
                 AI has mapped current viral media aesthetics to your product DNA.
               </p>
             </div>
-            <Button onClick={onNext} size="lg" rightIcon={<ArrowRight size={18} />}>
-              Confirm & Architect Briefs
+            <Button onClick={onNext} size="lg" rightIcon={<ArrowRight size={18} />} className="w-full md:w-auto">
+              <span className="hidden sm:inline">Confirm & Architect Briefs</span>
+              <span className="sm:hidden">Next</span>
             </Button>
           </div>
 
           {/* Trends Details */}
           {trends ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
               {/* Entertainment Narrative */}
-              <div className="space-y-6">
-                <div className="p-6 bg-indigo-50 rounded-2xl space-y-4">
+              <div className="space-y-4 md:space-y-6">
+                <div className="p-4 md:p-6 bg-indigo-50 rounded-2xl space-y-3 md:space-y-4">
                   <div className="flex items-center gap-2 text-indigo-700">
                     <Tv size={18} aria-hidden="true" />
                     <span className="text-xs font-bold uppercase tracking-widest">
@@ -94,8 +95,8 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
               </div>
 
               {/* Visual DNA */}
-              <div className="space-y-6">
-                <div className="p-6 border border-gray-100 rounded-2xl space-y-4 bg-white">
+              <div className="space-y-4 md:space-y-6">
+                <div className="p-4 md:p-6 border border-gray-100 rounded-2xl space-y-3 md:space-y-4 bg-white">
                   <div className="flex items-center gap-2 text-gray-900">
                     <Sparkles size={18} aria-hidden="true" />
                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">

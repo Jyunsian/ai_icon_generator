@@ -26,7 +26,7 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
 
   if (isLoading) {
     return (
-      <Card glass className="p-12">
+      <Card glass className="p-6 md:p-8 lg:p-12">
         <div
           className="flex flex-col items-center justify-center gap-6"
           role="status"
@@ -44,11 +44,11 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
   }
 
   return (
-    <div className="space-y-12 pb-20">
+    <div className="space-y-6 md:space-y-8 lg:space-y-12 pb-10 md:pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h3 className="text-2xl font-bold">Final Architecture</h3>
+          <h3 className="text-xl md:text-2xl font-bold">Final Architecture</h3>
           <p className="text-gray-500 text-sm">
             High-conversion directions optimized to evolve your brand identity.
           </p>
@@ -58,14 +58,15 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
           disabled={isExecutingAll}
           isLoading={isExecutingAll}
           size="lg"
+          className="w-full md:w-auto"
         >
-          {isExecutingAll ? 'Rendering All...' : 'Render All Proposals'}
+          {isExecutingAll ? 'Rendering...' : <><span className="hidden sm:inline">Render All Proposals</span><span className="sm:hidden">Render All</span></>}
         </Button>
       </div>
 
       {/* Briefs Grid */}
       <div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8"
         role="list"
         aria-label="Creative briefs"
       >
@@ -79,9 +80,9 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
       </div>
 
       {/* Call to Action */}
-      <div className="mt-12 p-10 border-t border-gray-100 flex flex-col items-center text-center gap-6">
+      <div className="mt-6 md:mt-8 lg:mt-12 p-4 md:p-6 lg:p-10 border-t border-gray-100 flex flex-col items-center text-center gap-4 md:gap-6">
         <div className="space-y-2">
-          <h4 className="text-xl font-bold">Satisfied with the architecture?</h4>
+          <h4 className="text-lg md:text-xl font-bold">Satisfied with the architecture?</h4>
           <p className="text-gray-400 text-sm max-w-md">
             You can download your favorite renders or start a completely new architectural audit
             for another app.
@@ -151,7 +152,7 @@ const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onG
       </div>
 
       {/* Content */}
-      <div className="p-6 space-y-4">
+      <div className="p-4 md:p-6 space-y-3 md:space-y-4">
         <h5 className="font-bold text-base tracking-tight">{brief.directionName}</h5>
         <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">&ldquo;{brief.theWhy}&rdquo;</p>
 
@@ -189,6 +190,12 @@ const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onG
             </div>
           </div>
         )}
+
+        {/* Generation Prompt */}
+        <div className="pt-2 border-t border-gray-50">
+          <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Generation Prompt</p>
+          <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{brief.prompt}</p>
+        </div>
 
         <div className="flex gap-4 pt-4 border-t border-gray-50">
           <button

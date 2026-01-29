@@ -50,14 +50,14 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen overflow-hidden text-gray-900">
+      <div className="flex flex-col md:flex-row min-h-screen text-gray-900">
         {/* Sidebar */}
         <Sidebar onNewTask={handleResetRequest} onOpenSettings={handleOpenSettings} />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto flex flex-col items-center relative">
+        <main className="flex-1 overflow-y-auto flex flex-col items-center relative pt-14 md:pt-0">
           {/* Header */}
-          <div className="w-full max-w-6xl flex justify-end p-4 sticky top-0 bg-gray-50/80 backdrop-blur-sm z-20">
+          <div className="w-full max-w-6xl flex justify-end px-4 py-3 md:p-4 sticky top-0 bg-gray-50/80 backdrop-blur-sm z-20">
             <a
               href="https://github.com"
               target="_blank"
@@ -68,16 +68,16 @@ const App: React.FC = () => {
             </a>
           </div>
 
-          <div className="w-full max-w-6xl px-8 py-12 flex flex-col items-center gap-8">
+          <div className="w-full max-w-6xl px-4 md:px-8 py-6 md:py-12 flex flex-col items-center gap-4 md:gap-6 lg:gap-8">
             {/* Hero */}
-            <header className="text-center space-y-4">
+            <header className="text-center space-y-3 md:space-y-4">
               <div className="inline-block px-2 py-0.5 bg-gray-100 text-[10px] font-medium text-gray-500 rounded-md border border-gray-200 uppercase tracking-wider">
                 AI Icon Generator v{APP_VERSION}
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+              <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                 AI-Powered App Icon Generation
               </h1>
-              <p className="text-gray-400 text-lg font-normal">
+              <p className="text-gray-400 text-base md:text-lg font-normal px-2">
                 Enter your app description or upload screenshots to generate stunning app icons.
               </p>
             </header>
@@ -102,7 +102,7 @@ const App: React.FC = () => {
 
             {/* Steps */}
             {!isIdle && (
-              <div className="w-full max-w-5xl space-y-8">
+              <div className="w-full max-w-5xl space-y-4 md:space-y-6 lg:space-y-8">
                 {showAnalysis && (
                   <AnalysisStep
                     status={analysis.status}

@@ -8,6 +8,10 @@ export default defineConfig({
         port: 3000,
         // Use localhost instead of 0.0.0.0 for security in development
         host: 'localhost',
+        // Proxy API requests to local Express server during development
+        proxy: {
+            '/api': 'http://localhost:3001',
+        },
     },
     resolve: {
         alias: {

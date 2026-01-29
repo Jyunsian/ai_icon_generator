@@ -47,6 +47,25 @@
 }
 
 @layer utilities {
+  /* Mobile drawer animation */
+  .mobile-drawer-enter {
+    transform: translateX(-100%);
+  }
+
+  .mobile-drawer-enter-active {
+    transform: translateX(0);
+    transition: transform 300ms ease-out;
+  }
+
+  .mobile-drawer-exit {
+    transform: translateX(0);
+  }
+
+  .mobile-drawer-exit-active {
+    transform: translateX(-100%);
+    transition: transform 300ms ease-in;
+  }
+
   /* Custom scrollbar */
   .scrollbar-thin {
     scrollbar-width: thin;

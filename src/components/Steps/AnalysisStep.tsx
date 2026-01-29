@@ -21,7 +21,7 @@ export const AnalysisStep: React.FC<AnalysisStepProps> = memo(function AnalysisS
   const isLoading = status === 'ANALYZING';
 
   return (
-    <Card glass className="p-8 shadow-xl">
+    <Card glass className="p-4 md:p-6 lg:p-8 shadow-xl">
       {isLoading ? (
         <div
           className="flex flex-col items-center justify-center py-20 gap-6"
@@ -41,17 +41,18 @@ export const AnalysisStep: React.FC<AnalysisStepProps> = memo(function AnalysisS
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-6 lg:space-y-8">
           {/* Header */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <h3 className="text-2xl font-bold">Checkpoint 1: Competitive DNA</h3>
+              <h3 className="text-xl md:text-2xl font-bold">Checkpoint 1: Competitive DNA</h3>
               <p className="text-gray-500 text-sm">
                 Review the identified market landscape before proceeding to cultural trends.
               </p>
             </div>
-            <Button onClick={onNext} size="lg" rightIcon={<ArrowRight size={18} />}>
-              Confirm & Next Step
+            <Button onClick={onNext} size="lg" rightIcon={<ArrowRight size={18} />} className="w-full md:w-auto">
+              <span className="hidden sm:inline">Confirm & Next Step</span>
+              <span className="sm:hidden">Next Step</span>
             </Button>
           </div>
 
@@ -127,7 +128,7 @@ export const AnalysisStep: React.FC<AnalysisStepProps> = memo(function AnalysisS
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 {/* Vertical & App Info */}
                 <div className="p-5 bg-gray-50 rounded-2xl space-y-3">
                   <div className="flex items-center gap-2 text-indigo-600">
@@ -187,7 +188,7 @@ export const AnalysisStep: React.FC<AnalysisStepProps> = memo(function AnalysisS
               </div>
 
               {/* Visual DNA & Features */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 {/* Visual DNA */}
                 {analysis.visualDna && (
                   <div className="p-5 border border-gray-100 rounded-2xl space-y-3 bg-white">
@@ -224,12 +225,12 @@ export const AnalysisStep: React.FC<AnalysisStepProps> = memo(function AnalysisS
               </div>
 
               {/* Competitors */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-bold uppercase tracking-widest text-gray-400">
+              <div className="space-y-3 md:space-y-4">
+                <h4 className="text-xs md:text-sm font-bold uppercase tracking-widest text-gray-400">
                   Direct Visual Competitors (Differentiate From)
                 </h4>
                 <div
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4"
                   role="list"
                   aria-label="Competitors"
                 >

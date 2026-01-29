@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
+import gplay from 'google-play-scraper';
 
 interface ScreenshotInput {
   data: string;
@@ -88,17 +89,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Detect if input contains a Play Store URL
     const playStoreInfo = detectPlayStoreUrl(input);
 
+    // Fetch actual icon from Play Store if URL detected
+    let playStoreIcon: { data: string; mimeType: string } | null = null;
+    if (playStoreInfo.isPlayStore && playStoreInfo.packageId) {
+      try {
+        const app = await gplay.app({ appId: playStoreInfo.packageId });
+        const iconResponse = await fetch(app.icon);
+        const buffer = await iconResponse.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        playStoreIcon = { data: base64, mimeType: 'image/png' };
+      } catch (error) {
+        console.error('Failed to fetch Play Store icon:', error);
+      }
+    }
+
     // Build the prompt based on input type
     const urlInstructions = playStoreInfo.isPlayStore
       ? `
-    GOOGLE PLAY URL DETECTED: ${playStoreInfo.url}
-    Package ID: ${playStoreInfo.packageId}
+GOOGLE PLAY URL DETECTED: ${playStoreInfo.url}
+Package ID: ${playStoreInfo.packageId}
 
-    ADDITIONAL URL-SPECIFIC TASKS:
-    - Extract the app name from the Play Store listing
-    - Extract the app category
-    - Analyze the app icon image from the listing as the primary "seed" for evolution
-    `
+${playStoreIcon ? 'THE FIRST IMAGE BELOW IS THE APP ICON FROM GOOGLE PLAY - use this as the primary "seed" for evolution.\nPerform SEED ANALYSIS on this icon.' : 'ADDITIONAL URL-SPECIFIC TASKS:\n- Extract the app name from the Play Store listing\n- Extract the app category'}
+`
       : '';
 
     const screenshotClassificationInstructions =
@@ -144,6 +156,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       | { text: string }
       | { inlineData: { data: string; mimeType: string } }
     > = [textPart];
+
+    // Add Play Store icon as the first image (seed icon)
+    if (playStoreIcon) {
+      parts.push({
+        inlineData: { data: playStoreIcon.data, mimeType: playStoreIcon.mimeType },
+      });
+    }
 
     for (const s of screenshots) {
       parts.push({

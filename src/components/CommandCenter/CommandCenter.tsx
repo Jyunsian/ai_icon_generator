@@ -58,7 +58,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = memo(function Command
   const isIdle = status === 'IDLE';
 
   return (
-    <div className="w-full max-w-4xl command-center rounded-2xl p-6 space-y-6 relative overflow-hidden">
+    <div className="w-full max-w-4xl command-center rounded-2xl p-4 md:p-6 space-y-4 md:space-y-6 relative overflow-hidden">
       {/* Text Input */}
       <label htmlFor="app-input" className="sr-only">
         Describe your app or paste a link
@@ -69,7 +69,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = memo(function Command
         value={appInput}
         onChange={handleTextareaChange}
         disabled={!isIdle}
-        className="w-full min-h-[140px] text-xl outline-none resize-none placeholder:text-gray-300 font-normal leading-relaxed disabled:opacity-50 focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 rounded-lg p-2 -m-2"
+        className="w-full min-h-[100px] md:min-h-[140px] text-lg md:text-xl outline-none resize-none placeholder:text-gray-300 font-normal leading-relaxed disabled:opacity-50 focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 rounded-lg p-2 -m-2"
         aria-describedby="input-help"
       />
       <span id="input-help" className="sr-only">
@@ -123,12 +123,12 @@ export const CommandCenter: React.FC<CommandCenterProps> = memo(function Command
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-        <div className="flex gap-3">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pt-4 border-t border-gray-50">
+        <div className="flex gap-2 md:gap-3">
           <button
             onClick={() => screenshotInputRef.current?.click()}
             disabled={!isIdle}
-            className="action-chip px-4 py-2 flex items-center gap-2 disabled:opacity-30 focus:ring-2 focus:ring-indigo-200"
+            className="action-chip px-3 md:px-4 py-2 flex items-center gap-2 disabled:opacity-30 focus:ring-2 focus:ring-indigo-200"
             aria-label="Upload image"
           >
             <Image size={16} aria-hidden="true" />
@@ -136,7 +136,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = memo(function Command
           </button>
 
           <div
-            className="flex gap-2 items-center px-2 py-2 border border-gray-200 rounded-lg bg-white opacity-50 cursor-not-allowed"
+            className="hidden sm:flex gap-2 items-center px-2 py-2 border border-gray-200 rounded-lg bg-white opacity-50 cursor-not-allowed"
             aria-label="Color palette selector (coming soon)"
             title="Color palette selector (coming soon)"
           >
@@ -147,8 +147,9 @@ export const CommandCenter: React.FC<CommandCenterProps> = memo(function Command
         </div>
 
         {isIdle ? (
-          <Button onClick={onStartAnalysis} size="lg" leftIcon={<Zap size={18} />}>
-            Begin Intelligence Audit
+          <Button onClick={onStartAnalysis} size="lg" leftIcon={<Zap size={18} />} className="w-full md:w-auto">
+            <span className="hidden sm:inline">Begin Intelligence Audit</span>
+            <span className="sm:hidden">Start Audit</span>
           </Button>
         ) : (
           <Button
@@ -156,6 +157,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = memo(function Command
             onClick={onReset}
             leftIcon={<RotateCcw size={14} />}
             aria-label="Restart project"
+            className="w-full md:w-auto"
           >
             Restart Project
           </Button>
