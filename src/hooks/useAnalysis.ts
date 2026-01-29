@@ -21,6 +21,8 @@ interface UseAnalysisReturn extends AnalysisState {
   startTrends: () => Promise<void>;
   startBriefing: () => Promise<void>;
   generateImage: (briefId: string) => Promise<void>;
+  updateBriefPrompt: (briefId: string, newPrompt: string) => void;
+  regenerateImage: (briefId: string, newPrompt: string) => Promise<void>;
   executeAll: () => Promise<void>;
   reset: () => void;
 }
@@ -203,6 +205,70 @@ export function useAnalysis(
     [state.briefs, state.screenshots, onError]
   );
 
+  const updateBriefPrompt = useCallback((briefId: string, newPrompt: string) => {
+    setState((prev) => ({
+      ...prev,
+      briefs: prev.briefs.map((b) =>
+        b.id === briefId ? { ...b, prompt: newPrompt } : b
+      ),
+    }));
+  }, []);
+
+  const regenerateImage = useCallback(
+    async (briefId: string, newPrompt: string) => {
+      // First update the prompt
+      setState((prev) => ({
+        ...prev,
+        briefs: prev.briefs.map((b) =>
+          b.id === briefId ? { ...b, prompt: newPrompt, generatedImage: 'LOADING' } : b
+        ),
+      }));
+
+      // Check for aistudio key selector
+      if (window.aistudio) {
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          await window.aistudio.openSelectKey();
+        }
+      }
+
+      try {
+        const brief = state.briefs.find((b) => b.id === briefId);
+        if (!brief) return;
+
+        // Find seed icon specifically
+        let refImg: { data: string; mimeType: string } | undefined;
+        if (state.screenshots.length > 0) {
+          const seedIndex = state.analysis?.seedIconAnalysis?.identified
+            ? state.analysis.seedIconAnalysis.screenshotIndex ?? 0
+            : 0;
+          const seedScreenshot = state.screenshots[seedIndex] || state.screenshots[0];
+          refImg = { data: seedScreenshot.data, mimeType: seedScreenshot.mimeType };
+        }
+
+        const imageUrl = await api.generateIcon(newPrompt, brief.suggestedSize, refImg);
+
+        setState((prev) => ({
+          ...prev,
+          briefs: prev.briefs.map((b) =>
+            b.id === briefId ? { ...b, generatedImage: imageUrl } : b
+          ),
+        }));
+        onSuccess?.('Image regenerated');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Image generation failed';
+        onError(`Render Error: ${message}`);
+        setState((prev) => ({
+          ...prev,
+          briefs: prev.briefs.map((b) =>
+            b.id === briefId ? { ...b, generatedImage: undefined } : b
+          ),
+        }));
+      }
+    },
+    [state.briefs, state.screenshots, state.analysis, onError, onSuccess]
+  );
+
   const executeAll = useCallback(async () => {
     if (state.isExecutingAll) return;
 
@@ -233,6 +299,8 @@ export function useAnalysis(
     startTrends,
     startBriefing,
     generateImage,
+    updateBriefPrompt,
+    regenerateImage,
     executeAll,
     reset,
   };

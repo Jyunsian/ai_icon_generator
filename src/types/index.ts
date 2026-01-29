@@ -52,12 +52,32 @@ export interface AnalysisResult {
   sources?: GroundingSource[];
 }
 
+export interface EntertainmentItem {
+  title: string;
+  description: string;
+}
+
+export interface EntertainmentCategory {
+  category: string;
+  items: EntertainmentItem[];
+}
+
+export interface SubcultureItem {
+  community: string;
+  visualLanguage: string;
+}
+
+export interface VisualTrendItem {
+  trend: string;
+  description: string;
+}
+
 export interface TrendSynthesis {
-  subcultureOverlap: string;
-  visualTrends: string;
+  subcultureOverlap: SubcultureItem[];
+  visualTrends: VisualTrendItem[];
   sentimentKeywords: string[];
   methodologyReasoning?: string;
-  entertainmentNarrative?: string;
+  entertainmentNarrative: EntertainmentCategory[];
   sources?: GroundingSource[];
 }
 

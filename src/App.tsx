@@ -126,6 +126,7 @@ const App: React.FC = () => {
                     briefs={analysis.briefs}
                     isExecutingAll={analysis.isExecutingAll}
                     onGenerateImage={analysis.generateImage}
+                    onRegenerateImage={analysis.regenerateImage}
                     onExecuteAll={analysis.executeAll}
                     onReset={handleResetRequest}
                   />
