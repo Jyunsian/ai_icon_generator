@@ -30,11 +30,31 @@ interface AnalysisResult {
   seedIconAnalysis?: SeedIconAnalysis;
 }
 
+interface EntertainmentItem {
+  title: string;
+  description: string;
+}
+
+interface EntertainmentCategory {
+  category: string;
+  items: EntertainmentItem[];
+}
+
+interface SubcultureItem {
+  community: string;
+  visualLanguage: string;
+}
+
+interface VisualTrendItem {
+  trend: string;
+  description: string;
+}
+
 interface TrendSynthesis {
-  subcultureOverlap: string;
-  visualTrends: string;
+  subcultureOverlap: SubcultureItem[];
+  visualTrends: VisualTrendItem[];
   sentimentKeywords: string[];
-  entertainmentNarrative?: string;
+  entertainmentNarrative: EntertainmentCategory[];
 }
 
 interface BriefsRequestBody {
@@ -75,9 +95,10 @@ function validateTrends(trends: unknown): trends is TrendSynthesis {
   if (!trends || typeof trends !== 'object') return false;
   const t = trends as Record<string, unknown>;
   return (
-    typeof t.subcultureOverlap === 'string' &&
-    typeof t.visualTrends === 'string' &&
-    Array.isArray(t.sentimentKeywords)
+    Array.isArray(t.subcultureOverlap) &&
+    Array.isArray(t.visualTrends) &&
+    Array.isArray(t.sentimentKeywords) &&
+    Array.isArray(t.entertainmentNarrative)
   );
 }
 
@@ -159,9 +180,9 @@ Vertical: ${sanitizeInput(analysis.vertical)}
 Core Features: ${analysis.features.map((f) => sanitizeInput(f)).join(', ')}
 
 === TRENDING INSPIRATION ===
-Entertainment Narrative: ${sanitizeInput(trends.entertainmentNarrative || '')}
-Visual Trends: ${sanitizeInput(trends.visualTrends)}
-Subculture Overlap: ${sanitizeInput(trends.subcultureOverlap)}
+Entertainment Narrative: ${trends.entertainmentNarrative.map((cat) => `${cat.category}: ${cat.items.map((i) => `${i.title} - ${i.description}`).join('; ')}`).join(' | ')}
+Visual Trends: ${trends.visualTrends.map((t) => `${t.trend}: ${t.description}`).join('; ')}
+Subculture Overlap: ${trends.subcultureOverlap.map((s) => `${s.community}: ${s.visualLanguage}`).join('; ')}
 
 === STRICT RULES ===
 1. EVOLUTION, NOT RANDOM: Keep the seed icon's core metaphor intact, evolve style.
