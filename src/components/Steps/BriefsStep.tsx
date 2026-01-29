@@ -1,5 +1,5 @@
-import React, { memo, useState } from 'react';
-import { Play, PlusCircle, Download, MousePointerClick, TrendingUp, Sparkles } from 'lucide-react';
+import React, { memo, useState, useCallback, useRef } from 'react';
+import { Play, PlusCircle, Download, MousePointerClick, TrendingUp, Sparkles, X, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CreativeBrief, AppState } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -10,6 +10,7 @@ interface BriefsStepProps {
   briefs: CreativeBrief[];
   isExecutingAll: boolean;
   onGenerateImage: (briefId: string) => void;
+  onRegenerateImage: (briefId: string, newPrompt: string) => void;
   onExecuteAll: () => void;
   onReset: () => void;
 }
@@ -19,10 +20,20 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
   briefs,
   isExecutingAll,
   onGenerateImage,
+  onRegenerateImage,
   onExecuteAll,
   onReset,
 }) {
   const isLoading = status === 'BRIEFING';
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollLeft = useCallback(() => {
+    scrollRef.current?.scrollBy({ left: -400, behavior: 'smooth' });
+  }, []);
+
+  const scrollRight = useCallback(() => {
+    scrollRef.current?.scrollBy({ left: 400, behavior: 'smooth' });
+  }, []);
 
   if (isLoading) {
     return (
@@ -64,19 +75,43 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
         </Button>
       </div>
 
-      {/* Briefs Grid */}
-      <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8"
-        role="list"
-        aria-label="Creative briefs"
-      >
-        {briefs.map((brief) => (
-          <BriefCard
-            key={brief.id}
-            brief={brief}
-            onGenerate={() => onGenerateImage(brief.id)}
-          />
-        ))}
+      {/* Briefs Slider */}
+      <div className="relative">
+        {/* Left Arrow */}
+        <button
+          onClick={scrollLeft}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft size={20} />
+        </button>
+
+        {/* Scrollable Container */}
+        <div
+          ref={scrollRef}
+          className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 px-12 scrollbar-hide"
+          role="list"
+          aria-label="Creative briefs"
+        >
+          {briefs.map((brief) => (
+            <div key={brief.id} className="snap-center shrink-0 w-80 md:w-96">
+              <BriefCard
+                brief={brief}
+                onGenerate={() => onGenerateImage(brief.id)}
+                onRegenerate={(newPrompt) => onRegenerateImage(brief.id, newPrompt)}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Right Arrow */}
+        <button
+          onClick={scrollRight}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          aria-label="Scroll right"
+        >
+          <ChevronRight size={20} />
+        </button>
       </div>
 
       {/* Call to Action */}
@@ -110,13 +145,162 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
 interface BriefCardProps {
   brief: CreativeBrief;
   onGenerate: () => void;
+  onRegenerate: (newPrompt: string) => void;
 }
 
-const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onGenerate }) {
+type CardView = 'default' | 'details' | 'adjust';
+
+const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onGenerate, onRegenerate }) {
   const [imageError, setImageError] = useState(false);
+  const [view, setView] = useState<CardView>('default');
+  const [editedPrompt, setEditedPrompt] = useState(brief.prompt);
+
   const isLoading = brief.generatedImage === 'LOADING';
   const hasImage = brief.generatedImage && brief.generatedImage !== 'LOADING' && !imageError;
 
+  const handleAdjustClick = useCallback(() => {
+    setEditedPrompt(brief.prompt);
+    setView('adjust');
+  }, [brief.prompt]);
+
+  const handleRegenerate = useCallback(() => {
+    onRegenerate(editedPrompt);
+    setView('default');
+  }, [editedPrompt, onRegenerate]);
+
+  const handleCancel = useCallback(() => {
+    setEditedPrompt(brief.prompt);
+    setView('default');
+  }, [brief.prompt]);
+
+  // Details View
+  if (view === 'details') {
+    return (
+      <Card glass className="overflow-hidden" role="listitem">
+        <div className="p-4 md:p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h5 className="font-bold text-base tracking-tight">{brief.directionName}</h5>
+            <button
+              onClick={() => setView('default')}
+              className="p-1 text-gray-400 hover:text-gray-900 transition-colors"
+              aria-label="Close details"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Design Thesis</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{brief.theWhy}</p>
+            </div>
+
+            {brief.designThesis && (
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Visual Strategy</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{brief.designThesis}</p>
+              </div>
+            )}
+
+            {brief.ctrRationale && (
+              <div className="flex items-start gap-2">
+                <MousePointerClick size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase font-bold">CTR Optimization</p>
+                  <p className="text-sm text-gray-600">{brief.ctrRationale}</p>
+                </div>
+              </div>
+            )}
+
+            {brief.cvrRationale && (
+              <div className="flex items-start gap-2">
+                <TrendingUp size={14} className="text-green-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase font-bold">CVR Optimization</p>
+                  <p className="text-sm text-gray-600">{brief.cvrRationale}</p>
+                </div>
+              </div>
+            )}
+
+            {brief.competitorDifferentiation && (
+              <div className="flex items-start gap-2">
+                <Sparkles size={14} className="text-purple-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase font-bold">Competitive Edge</p>
+                  <p className="text-sm text-gray-600">{brief.competitorDifferentiation}</p>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Generation Prompt</p>
+              <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">{brief.prompt}</p>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Suggested Resolution</p>
+              <p className="text-sm text-gray-700">{brief.suggestedSize}</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Adjust View
+  if (view === 'adjust') {
+    return (
+      <Card glass className="overflow-hidden" role="listitem">
+        <div className="p-4 md:p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h5 className="font-bold text-base tracking-tight">Adjust Prompt</h5>
+            <button
+              onClick={handleCancel}
+              className="p-1 text-gray-400 hover:text-gray-900 transition-colors"
+              aria-label="Cancel editing"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div>
+            <label htmlFor={`prompt-${brief.id}`} className="text-[10px] text-gray-400 uppercase font-bold mb-2 block">
+              Edit Generation Prompt
+            </label>
+            <textarea
+              id={`prompt-${brief.id}`}
+              value={editedPrompt}
+              onChange={(e) => setEditedPrompt(e.target.value)}
+              className="w-full h-48 p-3 text-sm text-gray-700 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              placeholder="Enter your generation prompt..."
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              onClick={handleRegenerate}
+              size="sm"
+              leftIcon={<RefreshCw size={14} />}
+              disabled={editedPrompt.trim() === '' || isLoading}
+              className="flex-1"
+            >
+              Regenerate
+            </Button>
+            <Button
+              onClick={handleCancel}
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Default View
   return (
     <Card
       glass
@@ -194,17 +378,19 @@ const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onG
         {/* Generation Prompt */}
         <div className="pt-2 border-t border-gray-50">
           <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Generation Prompt</p>
-          <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{brief.prompt}</p>
+          <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap line-clamp-4">{brief.prompt}</p>
         </div>
 
         <div className="flex gap-4 pt-4 border-t border-gray-50">
           <button
+            onClick={() => setView('details')}
             className="text-[10px] font-bold text-gray-400 hover:text-indigo-600 uppercase tracking-widest transition-colors focus:outline-none focus:text-indigo-600"
             aria-label={`View details for ${brief.directionName}`}
           >
             Details
           </button>
           <button
+            onClick={handleAdjustClick}
             className="text-[10px] font-bold text-gray-400 hover:text-indigo-600 uppercase tracking-widest transition-colors focus:outline-none focus:text-indigo-600"
             aria-label={`Adjust ${brief.directionName}`}
           >

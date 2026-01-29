@@ -47,6 +47,15 @@
 }
 
 @layer utilities {
+  /* Hidden scrollbar for sliders */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   /* Mobile drawer animation */
   .mobile-drawer-enter {
     transform: translateX(-100%);
