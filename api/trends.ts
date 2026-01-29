@@ -90,16 +90,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        What communities/fandoms overlap with ${vertical} users?
        What visual language do they share?
 
-    Return valid JSON.`,
+    Return structured arrays, NOT markdown text:
+    - entertainmentNarrative: array of categories (e.g., "Movies/Shows", "Games", "IPs") each with title/description items
+    - subcultureOverlap: array of communities with their visual language
+    - visualTrends: array of trends with descriptions
+
+    Do NOT use markdown formatting like asterisks or bullet points in string values.`,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            subcultureOverlap: { type: Type.STRING },
-            visualTrends: { type: Type.STRING },
+            subcultureOverlap: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  community: { type: Type.STRING },
+                  visualLanguage: { type: Type.STRING },
+                },
+                required: ['community', 'visualLanguage'],
+              },
+            },
+            visualTrends: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  trend: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                },
+                required: ['trend', 'description'],
+              },
+            },
             sentimentKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
-            entertainmentNarrative: { type: Type.STRING },
+            entertainmentNarrative: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  category: { type: Type.STRING },
+                  items: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                      },
+                      required: ['title', 'description'],
+                    },
+                  },
+                },
+                required: ['category', 'items'],
+              },
+            },
             methodologyReasoning: { type: Type.STRING },
           },
           required: [

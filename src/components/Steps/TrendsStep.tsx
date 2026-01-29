@@ -66,9 +66,20 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
                       Entertainment Narrative
                     </span>
                   </div>
-                  <blockquote className="text-base text-indigo-900 font-medium leading-relaxed italic">
-                    &ldquo;{trends.entertainmentNarrative}&rdquo;
-                  </blockquote>
+                  <div className="space-y-4">
+                    {trends.entertainmentNarrative.map((category) => (
+                      <div key={category.category}>
+                        <h5 className="font-semibold text-indigo-900 text-sm mb-2">{category.category}</h5>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {category.items.map((item) => (
+                            <li key={item.title} className="text-sm text-indigo-800">
+                              <strong>{item.title}</strong> – {item.description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Sentiment Keywords */}
@@ -107,13 +118,25 @@ export const TrendsStep: React.FC<TrendsStepProps> = memo(function TrendsStep({
                     <div>
                       <dt className="font-bold text-gray-900 text-sm">Subculture Overlap</dt>
                       <dd className="text-sm text-gray-600 leading-relaxed mt-1">
-                        {trends.subcultureOverlap}
+                        <ul className="list-disc pl-4 space-y-2">
+                          {trends.subcultureOverlap.map((item) => (
+                            <li key={item.community}>
+                              <strong>{item.community}:</strong> {item.visualLanguage}
+                            </li>
+                          ))}
+                        </ul>
                       </dd>
                     </div>
                     <div>
                       <dt className="font-bold text-gray-900 text-sm">Visual Aesthetic</dt>
                       <dd className="text-sm text-gray-600 leading-relaxed mt-1">
-                        {trends.visualTrends}
+                        <ul className="list-disc pl-4 space-y-2">
+                          {trends.visualTrends.map((item) => (
+                            <li key={item.trend}>
+                              <strong>{item.trend}:</strong> {item.description}
+                            </li>
+                          ))}
+                        </ul>
                       </dd>
                     </div>
                   </dl>
