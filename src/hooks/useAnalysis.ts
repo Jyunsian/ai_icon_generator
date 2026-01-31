@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { AnalysisResult, TrendSynthesis, CreativeBrief, ScreenshotFile, AppState, TrendSelection, TrendCategory } from '../types';
 import * as api from '../services/api';
+import { compressAndConvert } from '../lib/imageCompression';
 
 const defaultTrendSelection: TrendSelection = {
   entertainmentNarrative: true,
@@ -77,23 +78,28 @@ export function useAnalysis(
     []
   );
 
-  const addScreenshot = useCallback((file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
+  const addScreenshot = useCallback(async (file: File) => {
+    try {
+      // Compress image to max 1024px and 1MB before converting to base64
+      const { data, preview, mimeType } = await compressAndConvert(file, {
+        maxWidthOrHeight: 1024,
+        maxSizeMB: 1,
+      });
+
       setState((prev) => ({
         ...prev,
         screenshots: [
           ...prev.screenshots,
           {
-            data: base64,
-            mimeType: file.type,
-            preview: reader.result as string,
+            data,
+            mimeType,
+            preview,
           },
         ],
       }));
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Failed to process screenshot:', error);
+    }
   }, []);
 
   const removeScreenshot = useCallback((index: number) => {
@@ -333,10 +339,12 @@ export function useAnalysis(
 
     setState((prev) => ({ ...prev, isExecutingAll: true }));
 
-    for (const brief of state.briefs) {
-      if (!brief.generatedImage) {
-        await generateImage(brief.id);
-      }
+    // Get briefs that need generation (no existing image)
+    const briefsToGenerate = state.briefs.filter((brief) => !brief.generatedImage);
+
+    // Generate all images in parallel for ~4x speedup
+    if (briefsToGenerate.length > 0) {
+      await Promise.all(briefsToGenerate.map((brief) => generateImage(brief.id)));
     }
 
     setState((prev) => ({ ...prev, isExecutingAll: false }));

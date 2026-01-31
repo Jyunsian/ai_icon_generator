@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 import gplay from 'google-play-scraper';
-
-interface ScreenshotInput {
-  data: string;
-  mimeType: string;
-}
+import {
+  sanitizeInput,
+  filterValidScreenshots,
+  type ScreenshotInput,
+} from './utils/validators';
 
 interface AnalyzeRequestBody {
   input: string;
@@ -19,19 +19,6 @@ interface PlayStoreDetection {
   url?: string;
 }
 
-const MAX_INPUT_LENGTH = 5000;
-const MAX_SCREENSHOTS = 10;
-
-function sanitizeInput(input: string): string {
-  if (!input || typeof input !== 'string') {
-    return '';
-  }
-  return input
-    .trim()
-    .slice(0, MAX_INPUT_LENGTH)
-    .replace(/[<>]/g, '');
-}
-
 function detectPlayStoreUrl(input: string): PlayStoreDetection {
   const pattern = /play\.google\.com\/store\/apps\/details\?id=([a-zA-Z0-9._]+)/;
   const match = input.match(pattern);
@@ -43,16 +30,6 @@ function detectPlayStoreUrl(input: string): PlayStoreDetection {
     };
   }
   return { isPlayStore: false };
-}
-
-function validateScreenshot(screenshot: unknown): screenshot is ScreenshotInput {
-  if (!screenshot || typeof screenshot !== 'object') return false;
-  const s = screenshot as Record<string, unknown>;
-  return (
-    typeof s.data === 'string' &&
-    typeof s.mimeType === 'string' &&
-    ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(s.mimeType)
-  );
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -75,26 +52,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Input or screenshots required' });
     }
 
-    const screenshots: ScreenshotInput[] = [];
-    if (Array.isArray(body.screenshots)) {
-      for (const s of body.screenshots.slice(0, MAX_SCREENSHOTS)) {
-        if (validateScreenshot(s)) {
-          screenshots.push(s);
-        }
-      }
-    }
+    const screenshots = Array.isArray(body.screenshots)
+      ? filterValidScreenshots(body.screenshots)
+      : [];
 
     const ai = new GoogleGenAI({ apiKey });
 
     // Detect if input contains a Play Store URL
     const playStoreInfo = detectPlayStoreUrl(input);
 
-    // Fetch actual icon from Play Store if URL detected
+    // Fetch actual icon from Play Store if URL detected (with 5s timeout)
     let playStoreIcon: { data: string; mimeType: string } | null = null;
     if (playStoreInfo.isPlayStore && playStoreInfo.packageId) {
       try {
         const app = await gplay.app({ appId: playStoreInfo.packageId });
-        const iconResponse = await fetch(app.icon);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const iconResponse = await fetch(app.icon, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const buffer = await iconResponse.arrayBuffer();
         const base64 = Buffer.from(buffer).toString('base64');
         playStoreIcon = { data: base64, mimeType: 'image/png' };

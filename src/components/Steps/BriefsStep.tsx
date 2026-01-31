@@ -97,8 +97,8 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
             <div key={brief.id} className="snap-center shrink-0 w-80 md:w-96">
               <BriefCard
                 brief={brief}
-                onGenerate={() => onGenerateImage(brief.id)}
-                onRegenerate={(newPrompt) => onRegenerateImage(brief.id, newPrompt)}
+                onGenerateImage={onGenerateImage}
+                onRegenerateImage={onRegenerateImage}
               />
             </div>
           ))}
@@ -144,13 +144,13 @@ export const BriefsStep: React.FC<BriefsStepProps> = memo(function BriefsStep({
 
 interface BriefCardProps {
   brief: CreativeBrief;
-  onGenerate: () => void;
-  onRegenerate: (newPrompt: string) => void;
+  onGenerateImage: (briefId: string) => void;
+  onRegenerateImage: (briefId: string, newPrompt: string) => void;
 }
 
 type CardView = 'default' | 'details' | 'adjust';
 
-const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onGenerate, onRegenerate }) {
+const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onGenerateImage, onRegenerateImage }) {
   const [imageError, setImageError] = useState(false);
   const [view, setView] = useState<CardView>('default');
   const [editedPrompt, setEditedPrompt] = useState(brief.prompt);
@@ -158,15 +158,20 @@ const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onG
   const isLoading = brief.generatedImage === 'LOADING';
   const hasImage = brief.generatedImage && brief.generatedImage !== 'LOADING' && !imageError;
 
+  // Stable callback that uses brief.id from closure
+  const handleGenerate = useCallback(() => {
+    onGenerateImage(brief.id);
+  }, [onGenerateImage, brief.id]);
+
   const handleAdjustClick = useCallback(() => {
     setEditedPrompt(brief.prompt);
     setView('adjust');
   }, [brief.prompt]);
 
   const handleRegenerate = useCallback(() => {
-    onRegenerate(editedPrompt);
+    onRegenerateImage(brief.id, editedPrompt);
     setView('default');
-  }, [editedPrompt, onRegenerate]);
+  }, [onRegenerateImage, brief.id, editedPrompt]);
 
   const handleCancel = useCallback(() => {
     setEditedPrompt(brief.prompt);
@@ -345,7 +350,7 @@ const BriefCard: React.FC<BriefCardProps> = memo(function BriefCard({ brief, onG
           />
         ) : (
           <button
-            onClick={onGenerate}
+            onClick={handleGenerate}
             className="flex flex-col items-center gap-4 text-gray-400 hover:text-gray-900 transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 rounded-xl p-4"
             aria-label={`Render ${brief.directionName}`}
           >

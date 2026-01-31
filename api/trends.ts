@@ -1,12 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
-
-interface PsychographicProfile {
-  functionalMotivation: string;
-  emotionalMotivation: string;
-  socialMotivation: string;
-  summary: string;
-}
+import { sanitizeInput, type PsychographicProfile } from './utils/validators';
 
 interface TrendsRequestBody {
   vertical: string;
@@ -15,18 +9,6 @@ interface TrendsRequestBody {
   psychographicProfile?: PsychographicProfile;
   features?: string[];
   context?: string;
-}
-
-const MAX_INPUT_LENGTH = 2000;
-
-function sanitizeInput(input: string): string {
-  if (!input || typeof input !== 'string') {
-    return '';
-  }
-  return input
-    .trim()
-    .slice(0, MAX_INPUT_LENGTH)
-    .replace(/[<>]/g, '');
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

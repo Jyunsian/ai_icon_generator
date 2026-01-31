@@ -9,6 +9,8 @@ export default defineConfig({
     port: 3000,
     // Use localhost instead of 0.0.0.0 for security in development
     host: 'localhost',
+    // Allow ngrok and other tunnel services
+    allowedHosts: 'all',
     // Proxy API requests to local Express server during development
     proxy: {
       '/api': 'http://localhost:3001',

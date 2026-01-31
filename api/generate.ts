@@ -1,41 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
+import {
+  sanitizeInput,
+  validateSize,
+  validateReferenceImage,
+  MAX_PROMPT_LENGTH,
+  type IconSize,
+  type ReferenceImage,
+} from './utils/validators';
 
 interface GenerateRequestBody {
   prompt: string;
-  size: '1K' | '2K' | '4K';
-  referenceImage?: {
-    data: string;
-    mimeType: string;
-  };
-}
-
-const MAX_PROMPT_LENGTH = 3000;
-
-function sanitizeInput(input: string): string {
-  if (!input || typeof input !== 'string') {
-    return '';
-  }
-  return input
-    .trim()
-    .slice(0, MAX_PROMPT_LENGTH)
-    .replace(/[<>]/g, '');
-}
-
-function validateSize(size: unknown): size is '1K' | '2K' | '4K' {
-  return size === '1K' || size === '2K' || size === '4K';
-}
-
-function validateReferenceImage(
-  img: unknown
-): img is { data: string; mimeType: string } {
-  if (!img || typeof img !== 'object') return false;
-  const i = img as Record<string, unknown>;
-  return (
-    typeof i.data === 'string' &&
-    typeof i.mimeType === 'string' &&
-    ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(i.mimeType)
-  );
+  size: IconSize;
+  referenceImage?: ReferenceImage;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -51,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const body = req.body as GenerateRequestBody;
-    const prompt = sanitizeInput(body.prompt);
+    const prompt = sanitizeInput(body.prompt, MAX_PROMPT_LENGTH);
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt required' });

@@ -1,105 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
+import {
+  sanitizeInput,
+  validateAnalysis,
+  validateTrends,
+  type AnalysisResult,
+  type TrendSynthesis,
+  type PsychographicProfile,
+} from './utils/validators';
 
-interface PsychographicProfile {
-  functionalMotivation: string;
-  emotionalMotivation: string;
-  socialMotivation: string;
-  summary: string;
-}
-
-interface SeedIconAnalysis {
-  identified: boolean;
-  screenshotIndex?: number;
-  primaryMetaphor: string;
-  colorPalette: string[];
-  shapeLanguage: string;
-  lightingStyle: string;
-  mustPreserve: string[];
-}
-
-interface AnalysisResult {
-  appName?: string;
-  appCategory?: string;
-  vertical: string;
-  demographics: string;
-  features: string[];
-  competitors: { name: string; colorPalette: string[]; style: string }[];
-  psychographicProfile: PsychographicProfile;
-  visualDna?: string;
-  seedIconAnalysis?: SeedIconAnalysis;
-}
-
-interface EntertainmentItem {
-  title: string;
-  description: string;
-}
-
-interface EntertainmentCategory {
-  category: string;
-  items: EntertainmentItem[];
-}
-
-interface SubcultureItem {
-  community: string;
-  visualLanguage: string;
-}
-
-interface VisualTrendItem {
-  trend: string;
-  description: string;
-}
-
-interface TrendSynthesis {
-  subcultureOverlap: SubcultureItem[];
-  visualTrends: VisualTrendItem[];
-  sentimentKeywords: string[];
-  entertainmentNarrative: EntertainmentCategory[];
-}
+const BRIEF_MAX_INPUT_LENGTH = 2000;
 
 interface BriefsRequestBody {
   analysis: AnalysisResult;
   trends: TrendSynthesis;
   context?: string;
-}
-
-const MAX_INPUT_LENGTH = 2000;
-
-function sanitizeInput(input: string): string {
-  if (!input || typeof input !== 'string') {
-    return '';
-  }
-  return input
-    .trim()
-    .slice(0, MAX_INPUT_LENGTH)
-    .replace(/[<>]/g, '');
-}
-
-function validateAnalysis(analysis: unknown): analysis is AnalysisResult {
-  if (!analysis || typeof analysis !== 'object') return false;
-  const a = analysis as Record<string, unknown>;
-  // Support both old string format and new object format for psychographicProfile
-  const hasValidPsychographic =
-    typeof a.psychographicProfile === 'string' ||
-    (typeof a.psychographicProfile === 'object' && a.psychographicProfile !== null);
-  return (
-    typeof a.vertical === 'string' &&
-    typeof a.demographics === 'string' &&
-    Array.isArray(a.features) &&
-    Array.isArray(a.competitors) &&
-    hasValidPsychographic
-  );
-}
-
-function validateTrends(trends: unknown): trends is TrendSynthesis {
-  if (!trends || typeof trends !== 'object') return false;
-  const t = trends as Record<string, unknown>;
-  return (
-    Array.isArray(t.subcultureOverlap) &&
-    Array.isArray(t.visualTrends) &&
-    Array.isArray(t.sentimentKeywords) &&
-    Array.isArray(t.entertainmentNarrative)
-  );
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
