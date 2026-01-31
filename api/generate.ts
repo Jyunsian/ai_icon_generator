@@ -1,13 +1,49 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
-import {
-  sanitizeInput,
-  validateSize,
-  validateReferenceImage,
-  MAX_PROMPT_LENGTH,
-  type IconSize,
-  type ReferenceImage,
-} from './utils/validators';
+
+// Inlined validators to ensure proper Vercel bundling
+const MAX_PROMPT_LENGTH = 3000;
+
+const ALLOWED_IMAGE_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+] as const;
+
+type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
+type IconSize = '1K' | '2K' | '4K';
+
+interface ReferenceImage {
+  data: string;
+  mimeType: string;
+}
+
+function sanitizeInput(input: string, maxLength: number = MAX_PROMPT_LENGTH): string {
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '');
+}
+
+function validateSize(size: unknown): size is IconSize {
+  return size === '1K' || size === '2K' || size === '4K';
+}
+
+function validateReferenceImage(img: unknown): img is ReferenceImage {
+  if (!img || typeof img !== 'object') {
+    return false;
+  }
+  const i = img as Record<string, unknown>;
+  return (
+    typeof i.data === 'string' &&
+    typeof i.mimeType === 'string' &&
+    ALLOWED_IMAGE_TYPES.includes(i.mimeType as AllowedImageType)
+  );
+}
 
 interface GenerateRequestBody {
   prompt: string;

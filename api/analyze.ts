@@ -1,11 +1,59 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 import gplay from 'google-play-scraper';
-import {
-  sanitizeInput,
-  filterValidScreenshots,
-  type ScreenshotInput,
-} from './utils/validators';
+
+// Inlined validators to ensure proper Vercel bundling
+const MAX_INPUT_LENGTH = 5000;
+const MAX_SCREENSHOTS = 10;
+
+const ALLOWED_IMAGE_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+] as const;
+
+type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
+
+interface ScreenshotInput {
+  data: string;
+  mimeType: string;
+}
+
+function sanitizeInput(input: string, maxLength: number = MAX_INPUT_LENGTH): string {
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '');
+}
+
+function validateScreenshot(screenshot: unknown): screenshot is ScreenshotInput {
+  if (!screenshot || typeof screenshot !== 'object') {
+    return false;
+  }
+  const s = screenshot as Record<string, unknown>;
+  return (
+    typeof s.data === 'string' &&
+    typeof s.mimeType === 'string' &&
+    ALLOWED_IMAGE_TYPES.includes(s.mimeType as AllowedImageType)
+  );
+}
+
+function filterValidScreenshots(
+  screenshots: unknown[],
+  maxCount: number = MAX_SCREENSHOTS
+): ScreenshotInput[] {
+  const validScreenshots: ScreenshotInput[] = [];
+  for (const s of screenshots.slice(0, maxCount)) {
+    if (validateScreenshot(s)) {
+      validScreenshots.push(s);
+    }
+  }
+  return validScreenshots;
+}
 
 interface AnalyzeRequestBody {
   input: string;

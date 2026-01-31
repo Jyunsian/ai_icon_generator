@@ -1,15 +1,89 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
-import {
-  sanitizeInput,
-  validateAnalysis,
-  validateTrends,
-  type AnalysisResult,
-  type TrendSynthesis,
-  type PsychographicProfile,
-} from './utils/validators';
 
-const BRIEF_MAX_INPUT_LENGTH = 2000;
+// Inlined validators to ensure proper Vercel bundling
+const MAX_INPUT_LENGTH = 5000;
+
+function sanitizeInput(input: string, maxLength: number = MAX_INPUT_LENGTH): string {
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '');
+}
+
+interface PsychographicProfile {
+  functionalMotivation: string;
+  emotionalMotivation: string;
+  socialMotivation: string;
+  summary: string;
+}
+
+interface SeedIconAnalysis {
+  identified: boolean;
+  screenshotIndex?: number;
+  primaryMetaphor: string;
+  colorPalette: string[];
+  shapeLanguage: string;
+  lightingStyle: string;
+  mustPreserve: string[];
+}
+
+interface AnalysisResult {
+  appName?: string;
+  appCategory?: string;
+  vertical: string;
+  demographics: string;
+  features: string[];
+  competitors: { name: string; colorPalette: string[]; style: string }[];
+  psychographicProfile: PsychographicProfile | string;
+  visualDna?: string;
+  seedIconAnalysis?: SeedIconAnalysis;
+}
+
+interface TrendSynthesis {
+  subcultureOverlap: Array<{ community: string; visualLanguage: string }>;
+  visualTrends: Array<{ trend: string; description: string }>;
+  sentimentKeywords: string[];
+  entertainmentNarrative: Array<{
+    category: string;
+    items: Array<{ title: string; description: string }>;
+  }>;
+  methodologyReasoning?: string;
+  sources?: Array<{ title: string; uri: string }>;
+}
+
+function validateAnalysis(analysis: unknown): analysis is AnalysisResult {
+  if (!analysis || typeof analysis !== 'object') {
+    return false;
+  }
+  const a = analysis as Record<string, unknown>;
+  const hasValidPsychographic =
+    typeof a.psychographicProfile === 'string' ||
+    (typeof a.psychographicProfile === 'object' && a.psychographicProfile !== null);
+  return (
+    typeof a.vertical === 'string' &&
+    typeof a.demographics === 'string' &&
+    Array.isArray(a.features) &&
+    Array.isArray(a.competitors) &&
+    hasValidPsychographic
+  );
+}
+
+function validateTrends(trends: unknown): trends is TrendSynthesis {
+  if (!trends || typeof trends !== 'object') {
+    return false;
+  }
+  const t = trends as Record<string, unknown>;
+  return (
+    Array.isArray(t.subcultureOverlap) &&
+    Array.isArray(t.visualTrends) &&
+    Array.isArray(t.sentimentKeywords) &&
+    Array.isArray(t.entertainmentNarrative)
+  );
+}
 
 interface BriefsRequestBody {
   analysis: AnalysisResult;

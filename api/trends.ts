@@ -1,6 +1,25 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
-import { sanitizeInput, type PsychographicProfile } from './utils/validators';
+
+// Inlined validators to ensure proper Vercel bundling
+const MAX_INPUT_LENGTH = 5000;
+
+function sanitizeInput(input: string, maxLength: number = MAX_INPUT_LENGTH): string {
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>]/g, '');
+}
+
+interface PsychographicProfile {
+  functionalMotivation: string;
+  emotionalMotivation: string;
+  socialMotivation: string;
+  summary: string;
+}
 
 interface TrendsRequestBody {
   vertical: string;
