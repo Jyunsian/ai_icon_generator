@@ -6,19 +6,20 @@ interface StepProgressProps {
   status: AppState;
 }
 
-const STEPS = ['DNA Audit', 'Trend Pulse', 'Architecture', 'Render'] as const;
+const STEPS = ['Icon Analysis', 'Entertainment Insights', 'Evolution Customizer', 'Generate'] as const;
 
 function getCurrentStep(status: AppState): number {
   switch (status) {
-    case 'ANALYZING':
-    case 'ANALYSIS_REVIEW':
+    case 'ANALYZING_ENTERTAINMENT':
       return 0;
-    case 'SYNTHESIZING':
-    case 'TRENDS_REVIEW':
+    case 'INSIGHTS_REVIEW':
       return 1;
-    case 'BRIEFING':
+    case 'SUGGESTING':
+      return 1;
+    case 'CUSTOMIZATION':
       return 2;
-    case 'BRIEFS_REVIEW':
+    case 'GENERATING':
+      return 3;
     case 'COMPLETE':
       return 3;
     default:
@@ -59,7 +60,7 @@ export const StepProgress: React.FC<StepProgressProps> = memo(function StepProgr
                   )}
                 </div>
                 <span
-                  className={`text-xs font-bold uppercase tracking-widest ${
+                  className={`text-xs font-bold uppercase tracking-widest hidden sm:inline ${
                     isCurrent ? 'text-gray-900' : 'text-gray-400'
                   }`}
                 >
@@ -70,7 +71,7 @@ export const StepProgress: React.FC<StepProgressProps> = memo(function StepProgr
                 </span>
               </div>
               {index < STEPS.length - 1 && (
-                <div className="w-12 h-[1px] bg-gray-200 ml-2" aria-hidden="true" />
+                <div className="w-8 md:w-12 h-[1px] bg-gray-200 ml-2" aria-hidden="true" />
               )}
             </li>
           );

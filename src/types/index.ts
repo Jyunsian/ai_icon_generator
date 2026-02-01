@@ -119,15 +119,107 @@ export interface ScreenshotFile {
   preview: string;
 }
 
+// ============================================
+// Entertainment Insights Flow Types (New Flow)
+// ============================================
+
+export interface EntertainmentTrendItem {
+  title: string;
+  relevance: string;
+  visualElements: string[];
+}
+
+export interface AestheticTrend {
+  name: string;
+  description: string;
+  examples: string[];
+}
+
+export interface EntertainmentTrends {
+  movies: EntertainmentTrendItem[];
+  games: EntertainmentTrendItem[];
+  anime: EntertainmentTrendItem[];
+  aesthetics: AestheticTrend[];
+}
+
+export interface IconAnalysis {
+  coreSubject: string;
+  appFunction: string;
+  currentStyle: string;
+  mustPreserve: string[];
+}
+
+export interface TargetAudience {
+  demographics: string;
+  interests: string[];
+}
+
+export interface EntertainmentInsights {
+  targetAudience: TargetAudience;
+  entertainmentTrends: EntertainmentTrends;
+  iconAnalysis: IconAnalysis;
+  sources?: GroundingSource[];
+}
+
+export interface DimensionSuggestion {
+  recommendation: string;
+  rationale: string;
+  reference: string;
+}
+
+export interface EvolutionSuggestions {
+  suggestions: {
+    style: DimensionSuggestion;
+    pose: DimensionSuggestion;
+    costume: DimensionSuggestion;
+    mood: DimensionSuggestion;
+  };
+  functionGuard: {
+    warning: string;
+    reason: string;
+  };
+}
+
+export type EvolutionDimension = 'style' | 'pose' | 'costume' | 'mood';
+
+export interface SelectedDimension {
+  enabled: boolean;
+  value: string;
+}
+
+export interface SelectedDimensions {
+  style: SelectedDimension;
+  pose: SelectedDimension;
+  costume: SelectedDimension;
+  mood: SelectedDimension;
+}
+
+export interface EvolutionInput {
+  appIcon: string;
+  appName: string;
+  appCategory: string;
+  appDescription: string;
+}
+
+// AppState - Combined for backwards compatibility with old components
+// New flow states: ANALYZING_ENTERTAINMENT, INSIGHTS_REVIEW, SUGGESTING, CUSTOMIZATION, GENERATING
+// Legacy states (kept for old components): ANALYZING, ANALYSIS_REVIEW, SYNTHESIZING, TRENDS_REVIEW, BRIEFING, BRIEFS_REVIEW
 export type AppState =
   | 'IDLE'
+  // New entertainment insights flow
+  | 'ANALYZING_ENTERTAINMENT'
+  | 'INSIGHTS_REVIEW'
+  | 'SUGGESTING'
+  | 'CUSTOMIZATION'
+  | 'GENERATING'
+  | 'COMPLETE'
+  // Legacy states (for backwards compatibility)
   | 'ANALYZING'
   | 'ANALYSIS_REVIEW'
   | 'SYNTHESIZING'
   | 'TRENDS_REVIEW'
   | 'BRIEFING'
-  | 'BRIEFS_REVIEW'
-  | 'COMPLETE';
+  | 'BRIEFS_REVIEW';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 

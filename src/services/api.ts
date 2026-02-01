@@ -1,4 +1,14 @@
-import type { AnalysisResult, TrendSynthesis, CreativeBrief, PsychographicProfile } from '../types';
+import type {
+  AnalysisResult,
+  TrendSynthesis,
+  CreativeBrief,
+  PsychographicProfile,
+  EntertainmentInsights,
+  EvolutionSuggestions,
+  SelectedDimensions,
+  IconAnalysis,
+  EntertainmentTrends,
+} from '../types';
 
 interface ScreenshotInput {
   data: string;
@@ -17,6 +27,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+// Legacy API functions (kept for backwards compatibility)
 export async function analyzeAppMetadata(
   input: string,
   screenshots: ScreenshotInput[] = [],
@@ -79,4 +90,69 @@ export async function generateIcon(
 
   const data = await handleResponse<{ imageData: string; mimeType: string }>(response);
   return `data:${data.mimeType};base64,${data.imageData}`;
+}
+
+// New Entertainment Insights Flow API functions
+
+export async function getEntertainmentInsights(
+  appIcon: string,
+  appIconMimeType: string,
+  appName: string,
+  appCategory: string,
+  appDescription: string
+): Promise<EntertainmentInsights> {
+  const response = await fetch('/api/entertainment-insights', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      appIcon,
+      appIconMimeType,
+      appName,
+      appCategory,
+      appDescription,
+    }),
+  });
+  return handleResponse<EntertainmentInsights>(response);
+}
+
+export async function getEvolutionSuggestions(
+  iconAnalysis: IconAnalysis,
+  entertainmentTrends: EntertainmentTrends,
+  selectedTrends?: string[]
+): Promise<EvolutionSuggestions> {
+  const response = await fetch('/api/evolution-suggestions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      iconAnalysis,
+      entertainmentTrends,
+      selectedTrends,
+    }),
+  });
+  return handleResponse<EvolutionSuggestions>(response);
+}
+
+export async function generateEvolutionIcon(
+  referenceImage: ScreenshotInput,
+  selectedDimensions: SelectedDimensions,
+  iconAnalysis?: IconAnalysis,
+  functionGuard?: string[]
+): Promise<string> {
+  const response = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: '',
+      size: '2K',
+      referenceImage,
+      evolutionMode: true,
+      selectedDimensions,
+      iconAnalysis,
+      functionGuard,
+    }),
+  });
+
+  const data = await handleResponse<{ imageData: string; mimeType: string }>(response);
+  // Return raw base64 (consistent with internal handling in EvolutionCustomizer)
+  return data.imageData;
 }

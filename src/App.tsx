@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Sidebar } from './components/Layout/Sidebar';
 import { CommandCenter } from './components/CommandCenter/CommandCenter';
-import { StepProgress, AnalysisStep, TrendsStep, BriefsStep } from './components/Steps';
+import { StepProgress, EntertainmentInsightsStep, EvolutionCustomizer } from './components/Steps';
 import { ExploreGallery } from './components/ExploreGallery/ExploreGallery';
 import { Suggestions } from './components/Suggestions/Suggestions';
 import { ToastContainer, ConfirmDialog } from './components/ui';
@@ -23,7 +23,6 @@ const App: React.FC = () => {
   }, []);
 
   const handleResetRequest = useCallback(() => {
-    // Only show confirmation if there's progress
     if (analysis.status !== 'IDLE') {
       setShowResetConfirm(true);
     } else {
@@ -41,12 +40,15 @@ const App: React.FC = () => {
   }, []);
 
   const isIdle = analysis.status === 'IDLE';
-  const showAnalysis = analysis.status === 'ANALYZING' || analysis.status === 'ANALYSIS_REVIEW';
-  const showTrends = analysis.status === 'SYNTHESIZING' || analysis.status === 'TRENDS_REVIEW';
-  const showBriefs =
-    analysis.status === 'BRIEFING' ||
-    analysis.status === 'BRIEFS_REVIEW' ||
+  const showInsights =
+    analysis.status === 'ANALYZING_ENTERTAINMENT' || analysis.status === 'INSIGHTS_REVIEW';
+  const showCustomizer =
+    analysis.status === 'SUGGESTING' ||
+    analysis.status === 'CUSTOMIZATION' ||
+    analysis.status === 'GENERATING' ||
     analysis.status === 'COMPLETE';
+
+  const appIconPreview = analysis.screenshots[0]?.preview;
 
   return (
     <ErrorBoundary>
@@ -75,10 +77,10 @@ const App: React.FC = () => {
                 AI Icon Generator v{APP_VERSION}
               </div>
               <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-                AI-Powered App Icon Generation
+                Evolve Your App Icon
               </h1>
               <p className="text-gray-400 text-base md:text-lg font-normal px-2">
-                Enter your app description or upload screenshots to generate stunning app icons.
+                Transform your existing icon with entertainment trends your users love.
               </p>
             </header>
 
@@ -93,8 +95,10 @@ const App: React.FC = () => {
               onAddScreenshot={analysis.addScreenshot}
               onRemoveScreenshot={analysis.removeScreenshot}
               status={analysis.status}
-              onStartAnalysis={analysis.startAnalysis}
+              onStartAnalysis={analysis.startEntertainmentAnalysis}
               onReset={handleResetRequest}
+              evolutionInput={analysis.evolutionInput}
+              onUpdateEvolutionInput={analysis.updateEvolutionInput}
             />
 
             {/* Suggestions (IDLE state only) */}
@@ -103,35 +107,27 @@ const App: React.FC = () => {
             {/* Steps */}
             {!isIdle && (
               <div className="w-full max-w-5xl space-y-4 md:space-y-6 lg:space-y-8">
-                {showAnalysis && (
-                  <AnalysisStep
+                {showInsights && (
+                  <EntertainmentInsightsStep
                     status={analysis.status}
-                    analysis={analysis.analysis}
-                    screenshots={analysis.screenshots}
-                    onNext={analysis.startTrends}
+                    insights={analysis.entertainmentInsights}
+                    appIcon={appIconPreview}
+                    onSelectTrends={analysis.setSelectedTrends}
+                    onNext={analysis.startEvolutionSuggestions}
                   />
                 )}
 
-                {showTrends && (
-                  <TrendsStep
+                {showCustomizer && (
+                  <EvolutionCustomizer
                     status={analysis.status}
-                    trends={analysis.trends}
-                    trendSelection={analysis.trendSelection}
-                    trendOrder={analysis.trendOrder}
-                    onToggleCategory={analysis.toggleTrendCategory}
-                    onReorderTrends={analysis.reorderTrends}
-                    onNext={analysis.startBriefing}
-                  />
-                )}
-
-                {showBriefs && (
-                  <BriefsStep
-                    status={analysis.status}
-                    briefs={analysis.briefs}
-                    isExecutingAll={analysis.isExecutingAll}
-                    onGenerateImage={analysis.generateImage}
-                    onRegenerateImage={analysis.regenerateImage}
-                    onExecuteAll={analysis.executeAll}
+                    suggestions={analysis.evolutionSuggestions}
+                    selectedDimensions={analysis.selectedDimensions}
+                    iconAnalysis={analysis.entertainmentInsights?.iconAnalysis || null}
+                    appIcon={appIconPreview}
+                    generatedIcon={analysis.generatedIcon || undefined}
+                    onToggleDimension={analysis.toggleDimension}
+                    onUpdateDimension={analysis.updateDimension}
+                    onGenerate={analysis.generateEvolution}
                     onReset={handleResetRequest}
                   />
                 )}
