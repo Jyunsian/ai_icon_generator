@@ -13,6 +13,7 @@ import {
   FileText,
   Lightbulb,
   Check,
+  ArrowLeft,
 } from 'lucide-react';
 import type {
   AppState,
@@ -36,6 +37,7 @@ interface EvolutionCustomizerProps {
   onUpdateSuggestion: (value: string) => void;
   onGenerate: (customPrompt?: string) => void;
   onReset: () => void;
+  onGoBack?: () => void;
 }
 
 interface PromptPreviewProps {
@@ -248,6 +250,7 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
     onUpdateSuggestion,
     onGenerate,
     onReset,
+    onGoBack,
   }) {
     const [customPrompt, setCustomPrompt] = useState('');
     const isLoading = status === 'SUGGESTING';
@@ -309,6 +312,17 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
                 </p>
               </div>
               <div className="flex gap-2">
+                {onGoBack && !generatedIcon && (
+                  <Button
+                    onClick={onGoBack}
+                    size="lg"
+                    variant="ghost"
+                    leftIcon={<ArrowLeft size={18} />}
+                  >
+                    <span className="hidden sm:inline">Back to Trends</span>
+                    <span className="sm:hidden">Back</span>
+                  </Button>
+                )}
                 {generatedIcon && (
                   <>
                     <Button
@@ -362,8 +376,8 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
                     onUpdate={onUpdateSuggestion}
                   />
 
-                  {/* Function Guard Warning */}
-                  {functionGuard && (
+                  {/* Function Guard Warning - only show when meaningful */}
+                  {functionGuard?.warning && functionGuard.warning.length > 10 && (
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
                       <div className="flex items-start gap-3">
                         <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />

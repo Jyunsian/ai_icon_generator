@@ -58,6 +58,8 @@ interface UseAnalysisReturn extends AnalysisState {
   // New unified suggestion methods
   updateEditedSuggestion: (value: string) => void;
   generateEvolution: (customPrompt?: string) => Promise<void>;
+  // Navigation
+  goToStep: (targetStep: AppState) => void;
   // Legacy methods (kept for backwards compatibility)
   toggleDimension: (dimension: EvolutionDimension) => void;
   updateDimension: (dimension: EvolutionDimension, value: string) => void;
@@ -364,6 +366,18 @@ export function useAnalysis(
     }
   }, [state, onError, onSuccess]);
 
+  const goToStep = useCallback((targetStep: AppState) => {
+    const allowedBackNavigation: Partial<Record<AppState, AppState[]>> = {
+      'CUSTOMIZATION': ['INSIGHTS_REVIEW'],
+      'COMPLETE': ['CUSTOMIZATION', 'INSIGHTS_REVIEW'],
+    };
+
+    const currentStatus = state.status;
+    if (allowedBackNavigation[currentStatus]?.includes(targetStep)) {
+      setState((prev) => ({ ...prev, status: targetStep }));
+    }
+  }, [state.status]);
+
   const reset = useCallback(() => {
     setState(initialState);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -380,6 +394,7 @@ export function useAnalysis(
     setSelectedTrends,
     startEvolutionSuggestions,
     updateEditedSuggestion,
+    goToStep,
     toggleDimension,
     updateDimension,
     generateEvolution,

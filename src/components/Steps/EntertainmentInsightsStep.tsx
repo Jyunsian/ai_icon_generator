@@ -272,6 +272,14 @@ export const EntertainmentInsightsStep: React.FC<EntertainmentInsightsStepProps>
                     </span>
                   </div>
 
+                  {/* Guidance Banner */}
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      <strong>Tip:</strong> Select 2-4 trends for best results.
+                      Selected trends will directly influence your icon evolution.
+                    </p>
+                  </div>
+
                   {/* Movies */}
                   {insights.entertainmentTrends.movies.length > 0 && (
                     <div className="space-y-3">
@@ -362,12 +370,18 @@ export const EntertainmentInsightsStep: React.FC<EntertainmentInsightsStepProps>
                 </div>
 
                 {/* Selection Summary */}
-                {selectedTrends.size > 0 && (
+                {selectedTrends.size > 0 ? (
                   <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
                     <p className="text-sm text-indigo-700">
                       <strong>{selectedTrends.size}</strong> trend
                       {selectedTrends.size !== 1 ? 's' : ''} selected. These will influence your
                       icon evolution suggestions.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm text-amber-700">
+                      <strong>No trends selected.</strong> Suggestions will be more generic without trend influence.
                     </p>
                   </div>
                 )}

@@ -85,7 +85,7 @@ const App: React.FC = () => {
             </header>
 
             {/* Step Progress */}
-            {!isIdle && <StepProgress status={analysis.status} />}
+            {!isIdle && <StepProgress status={analysis.status} onGoToStep={analysis.goToStep} />}
 
             {/* Command Center */}
             <CommandCenter
@@ -130,6 +130,7 @@ const App: React.FC = () => {
                     onUpdateSuggestion={analysis.updateEditedSuggestion}
                     onGenerate={analysis.generateEvolution}
                     onReset={handleResetRequest}
+                    onGoBack={() => analysis.goToStep('INSIGHTS_REVIEW')}
                   />
                 )}
               </div>

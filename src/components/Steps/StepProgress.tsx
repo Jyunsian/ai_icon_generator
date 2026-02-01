@@ -1,9 +1,10 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { Check } from 'lucide-react';
 import type { AppState } from '../../types';
 
 interface StepProgressProps {
   status: AppState;
+  onGoToStep?: (targetStep: AppState) => void;
 }
 
 const STEPS = ['Icon Analysis', 'Entertainment Insights', 'Evolution Customizer', 'Generate'] as const;
@@ -27,8 +28,33 @@ function getCurrentStep(status: AppState): number {
   }
 }
 
-export const StepProgress: React.FC<StepProgressProps> = memo(function StepProgress({ status }) {
+function getStepTargetStatus(index: number): AppState | null {
+  switch (index) {
+    case 1:
+      return 'INSIGHTS_REVIEW';
+    case 2:
+      return 'CUSTOMIZATION';
+    default:
+      return null;
+  }
+}
+
+export const StepProgress: React.FC<StepProgressProps> = memo(function StepProgress({
+  status,
+  onGoToStep,
+}) {
   const currentStep = getCurrentStep(status);
+
+  const handleStepClick = useCallback(
+    (index: number) => {
+      if (!onGoToStep) return;
+      const targetStatus = getStepTargetStatus(index);
+      if (targetStatus) {
+        onGoToStep(targetStatus);
+      }
+    },
+    [onGoToStep]
+  );
 
   return (
     <nav
@@ -39,10 +65,19 @@ export const StepProgress: React.FC<StepProgressProps> = memo(function StepProgr
         {STEPS.map((step, index) => {
           const isCompleted = currentStep > index;
           const isCurrent = currentStep === index;
+          const isClickable = isCompleted && onGoToStep;
 
           return (
             <li key={step} className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => isClickable && handleStepClick(index)}
+                disabled={!isClickable}
+                className={`flex items-center gap-2 ${
+                  isClickable ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
+                }`}
+                aria-label={isClickable ? `Go back to ${step}` : step}
+              >
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
                     isCompleted
@@ -62,14 +97,14 @@ export const StepProgress: React.FC<StepProgressProps> = memo(function StepProgr
                 <span
                   className={`text-xs font-bold uppercase tracking-widest hidden sm:inline ${
                     isCurrent ? 'text-gray-900' : 'text-gray-400'
-                  }`}
+                  } ${isClickable ? 'underline decoration-dotted underline-offset-2' : ''}`}
                 >
                   {step}
                   <span className="sr-only">
-                    {isCompleted ? ' (completed)' : isCurrent ? ' (current)' : ' (pending)'}
+                    {isCompleted ? ' (completed - click to go back)' : isCurrent ? ' (current)' : ' (pending)'}
                   </span>
                 </span>
-              </div>
+              </button>
               {index < STEPS.length - 1 && (
                 <div className="w-8 md:w-12 h-[1px] bg-gray-200 ml-2" aria-hidden="true" />
               )}
