@@ -137,13 +137,14 @@ export async function generateEvolutionIcon(
   referenceImage: ScreenshotInput,
   selectedDimensions: SelectedDimensions,
   iconAnalysis?: IconAnalysis,
-  functionGuard?: string[]
+  functionGuard?: string[],
+  customPrompt?: string
 ): Promise<string> {
   const response = await fetch('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      prompt: '',
+      prompt: customPrompt || '',
       size: '2K',
       referenceImage,
       evolutionMode: true,

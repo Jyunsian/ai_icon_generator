@@ -52,7 +52,7 @@ interface UseAnalysisReturn extends AnalysisState {
   startEvolutionSuggestions: () => Promise<void>;
   toggleDimension: (dimension: EvolutionDimension) => void;
   updateDimension: (dimension: EvolutionDimension, value: string) => void;
-  generateEvolution: () => Promise<void>;
+  generateEvolution: (customPrompt?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -307,7 +307,7 @@ export function useAnalysis(
     []
   );
 
-  const generateEvolution = useCallback(async () => {
+  const generateEvolution = useCallback(async (customPrompt?: string) => {
     const { screenshots, entertainmentInsights, selectedDimensions, evolutionSuggestions } = state;
 
     if (screenshots.length === 0) {
@@ -343,7 +343,8 @@ export function useAnalysis(
         referenceImage,
         selectedDimensions,
         iconAnalysis,
-        functionGuard
+        functionGuard,
+        customPrompt
       );
 
       setState((prev) => ({

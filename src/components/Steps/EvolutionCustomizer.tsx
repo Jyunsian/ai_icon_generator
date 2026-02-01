@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Wand2,
   Hand,
@@ -12,6 +12,11 @@ import {
   Play,
   Download,
   RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  FileText,
+  Lightbulb,
 } from 'lucide-react';
 import type {
   EvolutionSuggestions,
@@ -23,6 +28,7 @@ import type {
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
+import { buildEvolutionPrompt, hasEnabledDimensions } from '../../lib/promptBuilder';
 
 interface EvolutionCustomizerProps {
   status: AppState;
@@ -33,7 +39,7 @@ interface EvolutionCustomizerProps {
   generatedIcon?: string;
   onToggleDimension: (dimension: EvolutionDimension) => void;
   onUpdateDimension: (dimension: EvolutionDimension, value: string) => void;
-  onGenerate: () => void;
+  onGenerate: (customPrompt?: string) => void;
   onReset: () => void;
 }
 
@@ -51,6 +57,118 @@ interface DimensionCardProps {
   onUpdateValue: (value: string) => void;
 }
 
+interface PromptPreviewProps {
+  prompt: string;
+}
+
+const PromptPreview: React.FC<PromptPreviewProps> = memo(function PromptPreview({ prompt }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+      timeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = prompt;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      timeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+    }
+  }, [prompt]);
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        aria-expanded={isExpanded}
+        aria-controls="prompt-preview-content"
+      >
+        <div className="flex items-center gap-2 text-gray-700">
+          <FileText size={18} className="text-gray-500" />
+          <span className="font-medium text-sm">Preview Prompt</span>
+        </div>
+        {isExpanded ? (
+          <ChevronUp size={18} className="text-gray-400" />
+        ) : (
+          <ChevronDown size={18} className="text-gray-400" />
+        )}
+      </button>
+
+      {isExpanded && (
+        <div id="prompt-preview-content" className="border-t border-gray-200">
+          <div className="p-4 bg-gray-50">
+            <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed max-h-64 overflow-y-auto">
+              {prompt}
+            </pre>
+          </div>
+          <div className="p-3 border-t border-gray-200 bg-white">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleCopy}
+              leftIcon={copied ? <Check size={14} /> : <Copy size={14} />}
+              className="w-full sm:w-auto"
+            >
+              {copied ? 'Copied!' : 'Copy Prompt'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// Color classes moved outside component to avoid recreation on each render
+const COLOR_CLASSES: Record<string, { bg: string; border: string; text: string; lightBg: string }> = {
+  indigo: {
+    bg: 'bg-indigo-500',
+    border: 'border-indigo-500',
+    text: 'text-indigo-600',
+    lightBg: 'bg-indigo-50',
+  },
+  rose: {
+    bg: 'bg-rose-500',
+    border: 'border-rose-500',
+    text: 'text-rose-600',
+    lightBg: 'bg-rose-50',
+  },
+  amber: {
+    bg: 'bg-amber-500',
+    border: 'border-amber-500',
+    text: 'text-amber-600',
+    lightBg: 'bg-amber-50',
+  },
+  emerald: {
+    bg: 'bg-emerald-500',
+    border: 'border-emerald-500',
+    text: 'text-emerald-600',
+    lightBg: 'bg-emerald-50',
+  },
+};
+
 const DimensionCard: React.FC<DimensionCardProps> = memo(function DimensionCard({
   title,
   icon,
@@ -66,6 +184,13 @@ const DimensionCard: React.FC<DimensionCardProps> = memo(function DimensionCard(
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
 
+  // Sync editValue when value prop changes from parent (while not editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValue(value);
+    }
+  }, [value, isEditing]);
+
   const handleSaveEdit = () => {
     onUpdateValue(editValue);
     setIsEditing(false);
@@ -76,34 +201,7 @@ const DimensionCard: React.FC<DimensionCardProps> = memo(function DimensionCard(
     setIsEditing(false);
   };
 
-  const colorClasses: Record<string, { bg: string; border: string; text: string; lightBg: string }> = {
-    indigo: {
-      bg: 'bg-indigo-500',
-      border: 'border-indigo-500',
-      text: 'text-indigo-600',
-      lightBg: 'bg-indigo-50',
-    },
-    rose: {
-      bg: 'bg-rose-500',
-      border: 'border-rose-500',
-      text: 'text-rose-600',
-      lightBg: 'bg-rose-50',
-    },
-    amber: {
-      bg: 'bg-amber-500',
-      border: 'border-amber-500',
-      text: 'text-amber-600',
-      lightBg: 'bg-amber-50',
-    },
-    emerald: {
-      bg: 'bg-emerald-500',
-      border: 'border-emerald-500',
-      text: 'text-emerald-600',
-      lightBg: 'bg-emerald-50',
-    },
-  };
-
-  const colors = colorClasses[color] || colorClasses.indigo;
+  const colors = COLOR_CLASSES[color] || COLOR_CLASSES.indigo;
 
   return (
     <div
@@ -199,14 +297,28 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
     onGenerate,
     onReset,
   }) {
+    const [customPrompt, setCustomPrompt] = useState('');
     const isLoading = status === 'SUGGESTING';
     const isGenerating = status === 'GENERATING';
+    const hasAnySelected = hasEnabledDimensions(selectedDimensions);
 
-    const hasAnySelected =
-      selectedDimensions.style.enabled ||
-      selectedDimensions.pose.enabled ||
-      selectedDimensions.costume.enabled ||
-      selectedDimensions.mood.enabled;
+    const handleGenerate = useCallback(() => {
+      onGenerate(customPrompt.trim() || undefined);
+    }, [onGenerate, customPrompt]);
+
+    // Build the prompt preview based on current selections
+    // When functionGuard warning exists, use iconAnalysis.mustPreserve to match the API call in useAnalysis
+    const previewPrompt = useMemo(() => {
+      const functionGuard = suggestions?.functionGuard?.warning
+        ? iconAnalysis?.mustPreserve
+        : undefined;
+      return buildEvolutionPrompt({
+        selectedDimensions,
+        iconAnalysis,
+        functionGuard,
+        additionalPrompt: customPrompt.trim() || undefined,
+      });
+    }, [selectedDimensions, iconAnalysis, suggestions?.functionGuard?.warning, customPrompt]);
 
     const downloadIcon = () => {
       if (!generatedIcon) return;
@@ -274,7 +386,7 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
                   </>
                 )}
                 <Button
-                  onClick={onGenerate}
+                  onClick={handleGenerate}
                   size="lg"
                   disabled={!hasAnySelected || isGenerating}
                   leftIcon={isGenerating ? undefined : <Play size={18} />}
@@ -374,6 +486,36 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
                       </div>
                     </div>
                   </div>
+
+                  {/* Additional Instructions */}
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <Lightbulb size={20} className="text-purple-600 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <label
+                          htmlFor="custom-prompt"
+                          className="font-bold text-sm text-purple-800"
+                        >
+                          Additional Instructions (Optional)
+                        </label>
+                        <textarea
+                          id="custom-prompt"
+                          value={customPrompt}
+                          onChange={(e) => setCustomPrompt(e.target.value)}
+                          placeholder="e.g., Make the cat cuter, add sparkle effects, use brighter colors..."
+                          className="w-full mt-2 p-3 border border-purple-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                          rows={2}
+                          maxLength={500}
+                        />
+                        <p className="text-xs text-purple-600 mt-2">
+                          Add custom instructions to fine-tune the generated icon
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Prompt Preview */}
+                  <PromptPreview prompt={previewPrompt} />
                 </div>
 
                 {/* Right: Icon Preview */}
