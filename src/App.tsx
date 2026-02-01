@@ -127,7 +127,9 @@ const App: React.FC = () => {
                     functionGuard={analysis.functionGuard}
                     appIcon={appIconPreview}
                     generatedIcon={analysis.generatedIcon || undefined}
+                    selectedRenderingStyle={analysis.renderingStyle}
                     onUpdateSuggestion={analysis.updateEditedSuggestion}
+                    onSelectRenderingStyle={analysis.setRenderingStyle}
                     onGenerate={analysis.generateEvolution}
                     onReset={handleResetRequest}
                     onGoBack={() => analysis.goToStep('INSIGHTS_REVIEW')}

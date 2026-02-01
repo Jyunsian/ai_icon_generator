@@ -8,6 +8,7 @@ import type {
   EvolutionDimension,
   EvolutionInput,
   IconAnalysis,
+  RenderingStyleId,
 } from '../types';
 import * as api from '../services/api';
 import { compressAndConvert } from '../lib/imageCompression';
@@ -40,6 +41,8 @@ interface AnalysisState {
   functionGuard: { warning: string; reason: string } | null;
   selectedTrends: string[];
   generatedIcon: string | null;
+  // Rendering style (default: match_seed to preserve original icon style)
+  renderingStyle: RenderingStyleId;
   // Legacy (kept for backwards compatibility)
   selectedDimensions: SelectedDimensions;
 }
@@ -58,6 +61,8 @@ interface UseAnalysisReturn extends AnalysisState {
   // New unified suggestion methods
   updateEditedSuggestion: (value: string) => void;
   generateEvolution: (customPrompt?: string) => Promise<void>;
+  // Rendering style
+  setRenderingStyle: (style: RenderingStyleId) => void;
   // Navigation
   goToStep: (targetStep: AppState) => void;
   // Legacy methods (kept for backwards compatibility)
@@ -78,6 +83,7 @@ const initialState: AnalysisState = {
   functionGuard: null,
   selectedTrends: [],
   generatedIcon: null,
+  renderingStyle: 'match_seed',
   selectedDimensions: defaultSelectedDimensions,
 };
 
@@ -289,6 +295,10 @@ export function useAnalysis(
     setState((prev) => ({ ...prev, editedSuggestion: value }));
   }, []);
 
+  const setRenderingStyle = useCallback((style: RenderingStyleId) => {
+    setState((prev) => ({ ...prev, renderingStyle: style }));
+  }, []);
+
   // Legacy methods kept for backwards compatibility
   const toggleDimension = useCallback((dimension: EvolutionDimension) => {
     setState((prev) => ({
@@ -320,7 +330,7 @@ export function useAnalysis(
   );
 
   const generateEvolution = useCallback(async (customPrompt?: string) => {
-    const { screenshots, entertainmentInsights, editedSuggestion, functionGuard } = state;
+    const { screenshots, entertainmentInsights, editedSuggestion, functionGuard, renderingStyle } = state;
 
     if (screenshots.length === 0) {
       onError('App icon required');
@@ -350,7 +360,8 @@ export function useAnalysis(
         editedSuggestion,
         iconAnalysis,
         functionGuardArr,
-        customPrompt
+        customPrompt,
+        renderingStyle
       );
 
       setState((prev) => ({
@@ -394,6 +405,7 @@ export function useAnalysis(
     setSelectedTrends,
     startEvolutionSuggestions,
     updateEditedSuggestion,
+    setRenderingStyle,
     goToStep,
     toggleDimension,
     updateDimension,

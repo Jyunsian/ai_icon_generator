@@ -242,6 +242,25 @@ export type AppState =
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+// Rendering style types for configurable output requirements
+export type RenderingStyleId =
+  | 'match_seed'
+  | '3d_render'
+  | 'flat'
+  | 'minimalist'
+  | 'glassmorphism'
+  | 'neo_brutalism'
+  | 'claymorphism'
+  | 'pixel_art'
+  | 'isometric';
+
+export interface RenderingStyle {
+  id: RenderingStyleId;
+  name: string;
+  description: string;
+  promptFragment: string;
+}
+
 export interface Toast {
   id: string;
   type: ToastType;

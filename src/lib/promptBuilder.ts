@@ -1,10 +1,12 @@
-import type { SelectedDimensions, IconAnalysis } from '../types';
+import type { SelectedDimensions, IconAnalysis, RenderingStyleId } from '../types';
+import { getRenderingStylePrompt } from './renderingStyles';
 
 export interface BuildPromptOptions {
   selectedDimensions: SelectedDimensions;
   iconAnalysis?: IconAnalysis | null;
   functionGuard?: string[];
   additionalPrompt?: string;
+  renderingStyle?: RenderingStyleId;
 }
 
 /**
@@ -13,7 +15,7 @@ export interface BuildPromptOptions {
  * @deprecated Use buildUnifiedEvolutionPrompt for the new simplified flow
  */
 export function buildEvolutionPrompt(options: BuildPromptOptions): string {
-  const { selectedDimensions, iconAnalysis, functionGuard = [], additionalPrompt } = options;
+  const { selectedDimensions, iconAnalysis, functionGuard = [], additionalPrompt, renderingStyle } = options;
 
   const enabledDimensions: string[] = [];
 
@@ -59,12 +61,7 @@ App 功能：${appFunction}
 ${dimensionsText}
 ${additionalSection}
 輸出要求：
-- App Store icon 格式
-- 高保真 3D 渲染
-- 柔和的全局光照
-- 鮮豔但專業的配色
-- 乾淨的邊緣，居中構圖
-- 中性或微漸層背景
+${getRenderingStylePrompt(renderingStyle || 'match_seed', iconAnalysis?.currentStyle)}
 - 必須感覺像種子 icon 的自然演化，而非替換品`;
 }
 
@@ -88,6 +85,7 @@ export interface BuildUnifiedPromptOptions {
   iconAnalysis?: IconAnalysis | null;
   functionGuard?: string[];
   additionalPrompt?: string;
+  renderingStyle?: RenderingStyleId;
 }
 
 /**
@@ -95,7 +93,7 @@ export interface BuildUnifiedPromptOptions {
  * Used in the new simplified flow that replaces the 4-dimension system.
  */
 export function buildUnifiedEvolutionPrompt(options: BuildUnifiedPromptOptions): string {
-  const { evolutionDirection, iconAnalysis, functionGuard = [], additionalPrompt } = options;
+  const { evolutionDirection, iconAnalysis, functionGuard = [], additionalPrompt, renderingStyle } = options;
 
   const coreSubject = iconAnalysis?.coreSubject || '原有主體';
   const appFunction = iconAnalysis?.appFunction || '原有功能';
@@ -121,11 +119,6 @@ App 功能：${appFunction}
 ${evolutionDirection}
 ${additionalSection}
 輸出要求：
-- App Store icon 格式
-- 高保真 3D 渲染
-- 柔和的全局光照
-- 鮮豔但專業的配色
-- 乾淨的邊緣，居中構圖
-- 中性或微漸層背景
+${getRenderingStylePrompt(renderingStyle || 'match_seed', iconAnalysis?.currentStyle)}
 - 必須感覺像種子 icon 的自然演化，而非替換品`;
 }

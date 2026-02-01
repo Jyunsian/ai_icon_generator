@@ -13,6 +13,106 @@ const ALLOWED_IMAGE_TYPES = [
 
 type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
 type IconSize = '1K' | '2K' | '4K';
+// Note: Types are inlined here for Vercel serverless function bundling
+// Source of truth is src/types/index.ts and src/lib/renderingStyles.ts
+const VALID_RENDERING_STYLES = [
+  'match_seed',
+  '3d_render',
+  'flat',
+  'minimalist',
+  'glassmorphism',
+  'neo_brutalism',
+  'claymorphism',
+  'pixel_art',
+  'isometric',
+] as const;
+
+type RenderingStyleId = (typeof VALID_RENDERING_STYLES)[number];
+
+function validateRenderingStyle(style: unknown): style is RenderingStyleId {
+  return typeof style === 'string' && VALID_RENDERING_STYLES.includes(style as RenderingStyleId);
+}
+
+const RENDERING_STYLE_PROMPTS: Record<RenderingStyleId, string> = {
+  match_seed: '', // Dynamic - handled separately
+  '3d_render': `- App Store icon 格式
+- 高保真 3D 渲染
+- 柔和的全局光照
+- 鮮豔但專業的配色
+- 乾淨的邊緣，居中構圖
+- 中性或微漸層背景`,
+  flat: `- App Store icon 格式
+- 扁平 2D 設計風格
+- 純色塊，無漸層或陰影
+- 簡潔幾何形狀
+- 高對比配色
+- 乾淨的邊緣，居中構圖
+- 純色或簡單背景`,
+  minimalist: `- App Store icon 格式
+- 極簡風格
+- 僅保留最核心的視覺元素
+- 大量留白
+- 單色或雙色配色
+- 簡化的線條和形狀
+- 乾淨純色背景`,
+  glassmorphism: `- App Store icon 格式
+- 玻璃擬態風格 (Glassmorphism)
+- 毛玻璃效果與模糊
+- 半透明層次
+- 柔和的光線折射
+- 精緻的邊框高光
+- 漸層或抽象背景`,
+  neo_brutalism: `- App Store icon 格式
+- 新粗野主義風格 (Neo-Brutalism)
+- 粗黑色輪廓線
+- 大膽鮮豔的純色
+- 明顯的陰影偏移
+- 故意的「未完成」美感
+- 高對比色塊背景`,
+  claymorphism: `- App Store icon 格式
+- 黏土擬態風格 (Claymorphism)
+- 柔軟的黏土質感
+- 圓潤的邊緣和角落
+- 柔和的內外陰影
+- 溫暖的粉彩配色
+- 立體但不銳利
+- 柔和漸層背景`,
+  pixel_art: `- App Store icon 格式
+- 像素藝術風格
+- 8-bit 或 16-bit 復古美學
+- 清晰可見的像素邊緣
+- 有限的調色盤
+- 懷舊遊戲風格
+- 純色或簡單像素背景`,
+  isometric: `- App Store icon 格式
+- 等距立體風格 (Isometric)
+- 等角投影視角
+- 精確的 30 度角度
+- 清晰的立體層次
+- 乾淨的幾何線條
+- 鮮豔但協調的配色
+- 中性或漸層背景`,
+};
+
+function getRenderingStylePrompt(styleId: RenderingStyleId | undefined, seedStyle?: string): string {
+  if (!styleId || styleId === 'match_seed') {
+    const styleDescription = seedStyle || '原有風格';
+    return `- App Store icon 格式
+- 保持原有視覺風格：${styleDescription}
+- 維持種子 icon 的渲染品質和質感
+- 乾淨的邊緣，居中構圖
+- 配色與原 icon 協調
+- 必須感覺像種子 icon 的自然演化`;
+  }
+
+  const prompt = RENDERING_STYLE_PROMPTS[styleId];
+  if (!prompt) {
+    console.warn(`Unknown rendering style: ${styleId}, falling back to 3d_render`);
+    return RENDERING_STYLE_PROMPTS['3d_render'];
+  }
+
+  return prompt;
+}
 
 interface ReferenceImage {
   data: string;
@@ -75,6 +175,8 @@ interface GenerateRequestBody {
   evolutionDirection?: string;
   iconAnalysis?: IconAnalysis;
   functionGuard?: string[];
+  // Configurable rendering style
+  renderingStyle?: RenderingStyleId;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -111,6 +213,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : undefined;
     const iconAnalysis = body.iconAnalysis;
     const functionGuard = Array.isArray(body.functionGuard) ? body.functionGuard : [];
+    const renderingStyle = validateRenderingStyle(body.renderingStyle)
+      ? body.renderingStyle
+      : undefined;
 
     const ai = new GoogleGenAI({ apiKey });
 
@@ -151,12 +256,7 @@ ${evolutionDirection}
 ${prompt ? `額外指示: ${prompt}` : ''}
 
 輸出要求：
-- App Store icon 格式
-- 高保真 3D 渲染
-- 柔和的全局光照
-- 鮮豔但專業的配色
-- 乾淨的邊緣，居中構圖
-- 中性或微漸層背景
+${getRenderingStylePrompt(renderingStyle, iconAnalysis?.currentStyle)}
 - 必須感覺像種子 icon 的自然演化，而非替換品`;
 
     // Legacy evolution mode with selected dimensions (backwards compatible)
@@ -207,12 +307,7 @@ ${dimensionsText}
 ${prompt ? `額外指示: ${prompt}` : ''}
 
 輸出要求：
-- App Store icon 格式
-- 高保真 3D 渲染
-- 柔和的全局光照
-- 鮮豔但專業的配色
-- 乾淨的邊緣，居中構圖
-- 中性或微漸層背景
+${getRenderingStylePrompt(renderingStyle, iconAnalysis?.currentStyle)}
 - 必須感覺像種子 icon 的自然演化，而非替換品`;
 
     } else if (referenceImage) {
@@ -233,12 +328,7 @@ DIRECTION TO EVOLVE INTO:
 ${prompt}
 
 OUTPUT REQUIREMENTS:
-- App Store icon format
-- High fidelity 3D render
-- Soft global illumination
-- Vibrant but professional colors
-- Clean edges, centered composition
-- Neutral or subtly gradient background
+${getRenderingStylePrompt(renderingStyle || '3d_render')}
 - Must feel like a natural evolution of the seed, not a replacement`;
     } else {
       fullPrompt = `Generate a premium mobile app icon from scratch.
@@ -246,12 +336,7 @@ OUTPUT REQUIREMENTS:
 SUBJECT: ${prompt}
 
 OUTPUT REQUIREMENTS:
-- App Store icon format
-- High fidelity 3D render
-- Soft global illumination
-- Vibrant but professional colors
-- Clean edges, centered composition
-- Neutral or subtly gradient background`;
+${getRenderingStylePrompt(renderingStyle || '3d_render')}`;
     }
 
     parts.push({ text: fullPrompt });

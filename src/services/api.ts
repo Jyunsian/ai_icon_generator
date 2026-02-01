@@ -9,6 +9,7 @@ import type {
   SelectedDimensions,
   IconAnalysis,
   EntertainmentTrends,
+  RenderingStyleId,
 } from '../types';
 
 interface ScreenshotInput {
@@ -187,7 +188,8 @@ export async function generateFromUnifiedSuggestion(
   evolutionDirection: string,
   iconAnalysis?: IconAnalysis,
   functionGuard?: string[],
-  customPrompt?: string
+  customPrompt?: string,
+  renderingStyle?: RenderingStyleId
 ): Promise<string> {
   const response = await fetch('/api/generate', {
     method: 'POST',
@@ -200,6 +202,7 @@ export async function generateFromUnifiedSuggestion(
       evolutionDirection,
       iconAnalysis,
       functionGuard,
+      renderingStyle,
     }),
   });
 

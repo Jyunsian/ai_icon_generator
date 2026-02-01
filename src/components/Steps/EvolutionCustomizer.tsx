@@ -19,10 +19,12 @@ import type {
   AppState,
   IconAnalysis,
   UnifiedSuggestion,
+  RenderingStyleId,
 } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
+import { StyleSelector } from '../ui/StyleSelector';
 import { buildUnifiedEvolutionPrompt } from '../../lib/promptBuilder';
 
 interface EvolutionCustomizerProps {
@@ -34,7 +36,9 @@ interface EvolutionCustomizerProps {
   functionGuard: { warning: string; reason: string } | null;
   appIcon?: string;
   generatedIcon?: string;
+  selectedRenderingStyle: RenderingStyleId;
   onUpdateSuggestion: (value: string) => void;
+  onSelectRenderingStyle: (style: RenderingStyleId) => void;
   onGenerate: (customPrompt?: string) => void;
   onReset: () => void;
   onGoBack?: () => void;
@@ -247,7 +251,9 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
     functionGuard,
     appIcon,
     generatedIcon,
+    selectedRenderingStyle,
     onUpdateSuggestion,
+    onSelectRenderingStyle,
     onGenerate,
     onReset,
     onGoBack,
@@ -270,8 +276,9 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
         iconAnalysis,
         functionGuard: functionGuardArr,
         additionalPrompt: customPrompt.trim() || undefined,
+        renderingStyle: selectedRenderingStyle,
       });
-    }, [editedSuggestion, iconAnalysis, functionGuard?.warning, customPrompt]);
+    }, [editedSuggestion, iconAnalysis, functionGuard?.warning, customPrompt, selectedRenderingStyle]);
 
     const downloadIcon = () => {
       if (!generatedIcon) return;
@@ -389,6 +396,13 @@ export const EvolutionCustomizer: React.FC<EvolutionCustomizerProps> = memo(
                       </div>
                     </div>
                   )}
+
+                  {/* Rendering Style Selector */}
+                  <StyleSelector
+                    selectedStyle={selectedRenderingStyle}
+                    onSelectStyle={onSelectRenderingStyle}
+                    seedStyle={iconAnalysis?.currentStyle}
+                  />
 
                   {/* Additional Instructions */}
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
