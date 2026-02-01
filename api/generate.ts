@@ -88,9 +88,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const body = req.body as GenerateRequestBody;
-    const prompt = sanitizeInput(body.prompt, MAX_PROMPT_LENGTH);
+    const prompt = sanitizeInput(body.prompt || '', MAX_PROMPT_LENGTH);
+    const evolutionMode = body.evolutionMode === true;
 
-    if (!prompt) {
+    // Prompt is optional in evolution mode (used only for additional instructions)
+    if (!prompt && !evolutionMode) {
       return res.status(400).json({ error: 'Prompt required' });
     }
 
@@ -101,8 +103,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const referenceImage = validateReferenceImage(body.referenceImage)
       ? body.referenceImage
       : undefined;
-
-    const evolutionMode = body.evolutionMode === true;
     const selectedDimensions = body.selectedDimensions;
     const iconAnalysis = body.iconAnalysis;
     const functionGuard = Array.isArray(body.functionGuard) ? body.functionGuard : [];
