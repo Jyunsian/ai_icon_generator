@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
+import gplay from 'google-play-scraper';
 
 const MAX_INPUT_LENGTH = 2000;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
@@ -24,12 +25,62 @@ function validateImageMimeType(mimeType: unknown): mimeType is AllowedImageType 
   return typeof mimeType === 'string' && ALLOWED_IMAGE_TYPES.includes(mimeType as AllowedImageType);
 }
 
+interface PlayStoreDetection {
+  isPlayStore: boolean;
+  packageId?: string;
+  url?: string;
+}
+
+function detectPlayStoreUrl(input: string): PlayStoreDetection {
+  const pattern = /play\.google\.com\/store\/apps\/details\?id=([a-zA-Z0-9._]+)/;
+  const match = input.match(pattern);
+  if (match) {
+    return {
+      isPlayStore: true,
+      packageId: match[1],
+      url: `https://play.google.com/store/apps/details?id=${match[1]}`,
+    };
+  }
+  return { isPlayStore: false };
+}
+
+interface PlayStoreAppInfo {
+  icon: string;
+  iconMimeType: string;
+  name: string;
+  category: string;
+  description: string;
+}
+
+async function fetchPlayStoreAppInfo(packageId: string): Promise<PlayStoreAppInfo> {
+  const app = await gplay.app({ appId: packageId });
+
+  // Fetch icon with timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const iconResponse = await fetch(app.icon, { signal: controller.signal });
+  clearTimeout(timeoutId);
+  const buffer = await iconResponse.arrayBuffer();
+  const iconBase64 = Buffer.from(buffer).toString('base64');
+
+  return {
+    icon: iconBase64,
+    iconMimeType: 'image/png',
+    name: app.title,
+    category: app.genre || 'Other',
+    description: app.summary || app.description?.slice(0, 500) || '',
+  };
+}
+
 interface EntertainmentInsightsRequest {
-  appIcon: string;
+  // Option A: Play Store URL (auto-fetch)
+  playStoreUrl?: string;
+  // Option B: Manual input
+  appIcon?: string;
   appIconMimeType?: string;
-  appName: string;
-  appCategory: string;
-  appDescription: string;
+  appName?: string;
+  appCategory?: string;
+  appDescription?: string;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -45,33 +96,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const body = req.body as EntertainmentInsightsRequest;
 
-    if (!body.appIcon || typeof body.appIcon !== 'string') {
-      return res.status(400).json({ error: 'appIcon is required (base64)' });
-    }
+    let appIcon: string;
+    let mimeType: AllowedImageType;
+    let appName: string;
+    let appCategory: string;
+    let appDescription: string;
 
-    // Validate image size (base64 is ~4/3 the size of binary)
-    const estimatedSize = (body.appIcon.length * 3) / 4;
-    if (estimatedSize > MAX_IMAGE_SIZE_BYTES) {
-      return res.status(400).json({ error: 'Image too large. Maximum 10MB allowed.' });
-    }
+    // Check if Play Store URL provided
+    const playStoreDetection = body.playStoreUrl
+      ? detectPlayStoreUrl(body.playStoreUrl)
+      : { isPlayStore: false };
 
-    const appName = sanitizeInput(body.appName);
-    const appCategory = sanitizeInput(body.appCategory);
-    const appDescription = sanitizeInput(body.appDescription);
+    if (playStoreDetection.isPlayStore && playStoreDetection.packageId) {
+      // Fetch app info from Play Store
+      try {
+        const playStoreInfo = await fetchPlayStoreAppInfo(playStoreDetection.packageId);
+        appIcon = playStoreInfo.icon;
+        mimeType = playStoreInfo.iconMimeType as AllowedImageType;
+        appName = sanitizeInput(playStoreInfo.name);
+        appCategory = sanitizeInput(playStoreInfo.category);
+        appDescription = sanitizeInput(playStoreInfo.description);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to fetch Play Store app info';
+        return res.status(400).json({ error: `Play Store fetch failed: ${message}` });
+      }
+    } else {
+      // Manual input mode
+      if (!body.appIcon || typeof body.appIcon !== 'string') {
+        return res.status(400).json({ error: 'appIcon is required (base64) or provide playStoreUrl' });
+      }
 
-    if (!appName) {
-      return res.status(400).json({ error: 'appName is required' });
-    }
-    if (!appCategory) {
-      return res.status(400).json({ error: 'appCategory is required' });
-    }
-    if (!appDescription) {
-      return res.status(400).json({ error: 'appDescription is required' });
-    }
+      // Validate image size (base64 is ~4/3 the size of binary)
+      const estimatedSize = (body.appIcon.length * 3) / 4;
+      if (estimatedSize > MAX_IMAGE_SIZE_BYTES) {
+        return res.status(400).json({ error: 'Image too large. Maximum 10MB allowed.' });
+      }
 
-    const mimeType = validateImageMimeType(body.appIconMimeType)
-      ? body.appIconMimeType
-      : 'image/png';
+      appIcon = body.appIcon;
+      mimeType = validateImageMimeType(body.appIconMimeType)
+        ? body.appIconMimeType
+        : 'image/png';
+      appName = sanitizeInput(body.appName || '');
+      appCategory = sanitizeInput(body.appCategory || '');
+      appDescription = sanitizeInput(body.appDescription || '');
+
+      if (!appName) {
+        return res.status(400).json({ error: 'appName is required' });
+      }
+      if (!appCategory) {
+        return res.status(400).json({ error: 'appCategory is required' });
+      }
+      if (!appDescription) {
+        return res.status(400).json({ error: 'appDescription is required' });
+      }
+    }
 
     const ai = new GoogleGenAI({ apiKey });
 
@@ -126,7 +204,7 @@ App 資訊：
       | { inlineData: { data: string; mimeType: string } }
     > = [
       { text: prompt },
-      { inlineData: { data: body.appIcon, mimeType } },
+      { inlineData: { data: appIcon, mimeType } },
     ];
 
     const response = await ai.models.generateContent({

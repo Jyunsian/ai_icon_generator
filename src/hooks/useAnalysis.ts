@@ -143,46 +143,78 @@ export function useAnalysis(
   );
 
   const startEntertainmentAnalysis = useCallback(async () => {
-    const { evolutionInput, screenshots } = state;
+    const { evolutionInput, screenshots, appInput } = state;
 
-    if (screenshots.length === 0) {
-      onError('Please upload your app icon');
-      return;
-    }
-    if (!evolutionInput.appName.trim()) {
-      onError('Please enter the app name');
-      return;
-    }
-    if (!evolutionInput.appCategory) {
-      onError('Please select the app category');
-      return;
-    }
-    if (!evolutionInput.appDescription.trim()) {
-      onError('Please describe your app');
-      return;
-    }
+    // Detect Play Store URL from appInput
+    const playStorePattern = /play\.google\.com\/store\/apps\/details\?id=([a-zA-Z0-9._]+)/;
+    const playStoreMatch = appInput.match(playStorePattern);
+    const playStoreUrl = playStoreMatch
+      ? `https://play.google.com/store/apps/details?id=${playStoreMatch[1]}`
+      : null;
 
-    setState((prev) => ({ ...prev, status: 'ANALYZING_ENTERTAINMENT' }));
+    if (playStoreUrl) {
+      // Play Store URL mode - auto-fetch everything
+      setState((prev) => ({ ...prev, status: 'ANALYZING_ENTERTAINMENT' }));
 
-    try {
-      const result = await api.getEntertainmentInsights(
-        screenshots[0].data,
-        screenshots[0].mimeType,
-        evolutionInput.appName,
-        evolutionInput.appCategory,
-        evolutionInput.appDescription
-      );
+      try {
+        const result = await api.getEntertainmentInsights({
+          playStoreUrl,
+        });
 
-      setState((prev) => ({
-        ...prev,
-        entertainmentInsights: result,
-        status: 'INSIGHTS_REVIEW',
-      }));
-      onSuccess?.('Entertainment insights analyzed');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Entertainment analysis failed';
-      onError(message);
-      setState((prev) => ({ ...prev, status: 'IDLE' }));
+        setState((prev) => ({
+          ...prev,
+          entertainmentInsights: result,
+          status: 'INSIGHTS_REVIEW',
+        }));
+        onSuccess?.('Entertainment insights analyzed');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Entertainment analysis failed';
+        onError(message);
+        setState((prev) => ({ ...prev, status: 'IDLE' }));
+      }
+    } else if (screenshots.length > 0) {
+      // Manual mode - require icon and use appInput as description if fields are empty
+      const appName = evolutionInput.appName.trim();
+      const appCategory = evolutionInput.appCategory;
+      const appDescription = evolutionInput.appDescription.trim() || appInput.trim();
+
+      if (!appName) {
+        onError('Please enter the app name');
+        return;
+      }
+      if (!appCategory) {
+        onError('Please select the app category');
+        return;
+      }
+      if (!appDescription) {
+        onError('Please describe your app');
+        return;
+      }
+
+      setState((prev) => ({ ...prev, status: 'ANALYZING_ENTERTAINMENT' }));
+
+      try {
+        const result = await api.getEntertainmentInsights({
+          appIcon: screenshots[0].data,
+          appIconMimeType: screenshots[0].mimeType,
+          appName,
+          appCategory,
+          appDescription,
+        });
+
+        setState((prev) => ({
+          ...prev,
+          entertainmentInsights: result,
+          status: 'INSIGHTS_REVIEW',
+        }));
+        onSuccess?.('Entertainment insights analyzed');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Entertainment analysis failed';
+        onError(message);
+        setState((prev) => ({ ...prev, status: 'IDLE' }));
+      }
+    } else {
+      onError('Please paste a Play Store URL or upload your app icon');
     }
   }, [state, onError, onSuccess]);
 

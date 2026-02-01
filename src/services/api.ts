@@ -94,23 +94,24 @@ export async function generateIcon(
 
 // New Entertainment Insights Flow API functions
 
+export interface EntertainmentInsightsParams {
+  // Option A: Play Store URL (auto-fetch)
+  playStoreUrl?: string;
+  // Option B: Manual input
+  appIcon?: string;
+  appIconMimeType?: string;
+  appName?: string;
+  appCategory?: string;
+  appDescription?: string;
+}
+
 export async function getEntertainmentInsights(
-  appIcon: string,
-  appIconMimeType: string,
-  appName: string,
-  appCategory: string,
-  appDescription: string
+  params: EntertainmentInsightsParams
 ): Promise<EntertainmentInsights> {
   const response = await fetch('/api/entertainment-insights', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      appIcon,
-      appIconMimeType,
-      appName,
-      appCategory,
-      appDescription,
-    }),
+    body: JSON.stringify(params),
   });
   return handleResponse<EntertainmentInsights>(response);
 }
