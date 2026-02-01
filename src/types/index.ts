@@ -159,6 +159,10 @@ export interface EntertainmentInsights {
   entertainmentTrends: EntertainmentTrends;
   iconAnalysis: IconAnalysis;
   sources?: GroundingSource[];
+  fetchedIcon?: {
+    data: string;
+    mimeType: string;
+  };
 }
 
 export interface DimensionSuggestion {

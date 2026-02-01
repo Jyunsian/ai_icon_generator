@@ -161,9 +161,26 @@ export function useAnalysis(
           playStoreUrl,
         });
 
+        // Guard: Play Store mode must return icon data
+        if (!result.fetchedIcon) {
+          onError('Play Store fetch succeeded but no icon data returned');
+          setState((prev) => ({ ...prev, status: 'IDLE' }));
+          return;
+        }
+
+        // Store fetched icon in screenshots for later generation
+        const newScreenshots: ScreenshotFile[] = [
+          {
+            data: result.fetchedIcon.data,
+            mimeType: result.fetchedIcon.mimeType,
+            preview: `data:${result.fetchedIcon.mimeType};base64,${result.fetchedIcon.data}`,
+          },
+        ];
+
         setState((prev) => ({
           ...prev,
           entertainmentInsights: result,
+          screenshots: newScreenshots,
           status: 'INSIGHTS_REVIEW',
         }));
         onSuccess?.('Entertainment insights analyzed');

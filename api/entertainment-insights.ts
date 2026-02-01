@@ -58,14 +58,30 @@ async function fetchPlayStoreAppInfo(packageId: string): Promise<PlayStoreAppInf
   // Fetch icon with timeout
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 5000);
-  const iconResponse = await fetch(app.icon, { signal: controller.signal });
+
+  let iconResponse: Response;
+  try {
+    iconResponse = await fetch(app.icon, { signal: controller.signal });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Icon fetch timed out after 5 seconds');
+    }
+    throw error;
+  }
   clearTimeout(timeoutId);
+
+  if (!iconResponse.ok) {
+    throw new Error(`Failed to fetch icon: HTTP ${iconResponse.status}`);
+  }
+
+  const contentType = iconResponse.headers.get('content-type') || 'image/png';
   const buffer = await iconResponse.arrayBuffer();
   const iconBase64 = Buffer.from(buffer).toString('base64');
 
   return {
     icon: iconBase64,
-    iconMimeType: 'image/png',
+    iconMimeType: contentType.split(';')[0],
     name: app.title,
     category: app.genre || 'Other',
     description: app.summary || app.description?.slice(0, 500) || '',
@@ -311,6 +327,14 @@ App 資訊：
       }
     }
     data.sources = sources;
+
+    // Include fetched icon data for Play Store URL mode
+    if (playStoreDetection.isPlayStore) {
+      data.fetchedIcon = {
+        data: appIcon,
+        mimeType,
+      };
+    }
 
     return res.status(200).json(data);
   } catch (error) {
