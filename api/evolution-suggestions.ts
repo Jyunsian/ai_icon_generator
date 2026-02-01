@@ -72,13 +72,16 @@ function filterTrendsBySelection(
     return { filteredContext: '', selectedNames: [] };
   }
 
+  // Frontend sends IDs like "movie-Knives Out", "anime-Demon Slayer", "aesthetic-Y2K"
+  // We need to match against these prefixed formats
   const selectedSet = new Set(selectedTrends.map(t => t.toLowerCase()));
   const selectedNames: string[] = [];
   const sections: string[] = [];
 
-  // Filter movies
+  // Filter movies - match against "movie-{title}"
   const selectedMovies = trends.movies.filter(m => {
-    const match = selectedSet.has(m.title.toLowerCase());
+    const trendId = `movie-${m.title}`.toLowerCase();
+    const match = selectedSet.has(trendId);
     if (match) selectedNames.push(m.title);
     return match;
   });
@@ -87,9 +90,10 @@ function filterTrendsBySelection(
 ${selectedMovies.map(m => `- ${sanitizeInput(m.title)}: ${sanitizeInput(m.relevance)}\n  視覺元素: ${m.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}`);
   }
 
-  // Filter games
+  // Filter games - match against "game-{title}"
   const selectedGames = trends.games.filter(g => {
-    const match = selectedSet.has(g.title.toLowerCase());
+    const trendId = `game-${g.title}`.toLowerCase();
+    const match = selectedSet.has(trendId);
     if (match) selectedNames.push(g.title);
     return match;
   });
@@ -98,9 +102,10 @@ ${selectedMovies.map(m => `- ${sanitizeInput(m.title)}: ${sanitizeInput(m.releva
 ${selectedGames.map(g => `- ${sanitizeInput(g.title)}: ${sanitizeInput(g.relevance)}\n  視覺元素: ${g.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}`);
   }
 
-  // Filter anime
+  // Filter anime - match against "anime-{title}"
   const selectedAnime = trends.anime.filter(a => {
-    const match = selectedSet.has(a.title.toLowerCase());
+    const trendId = `anime-${a.title}`.toLowerCase();
+    const match = selectedSet.has(trendId);
     if (match) selectedNames.push(a.title);
     return match;
   });
@@ -109,9 +114,10 @@ ${selectedGames.map(g => `- ${sanitizeInput(g.title)}: ${sanitizeInput(g.relevan
 ${selectedAnime.map(a => `- ${sanitizeInput(a.title)}: ${sanitizeInput(a.relevance)}\n  視覺元素: ${a.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}`);
   }
 
-  // Filter aesthetics
+  // Filter aesthetics - match against "aesthetic-{name}"
   const selectedAesthetics = trends.aesthetics.filter(a => {
-    const match = selectedSet.has(a.name.toLowerCase());
+    const trendId = `aesthetic-${a.name}`.toLowerCase();
+    const match = selectedSet.has(trendId);
     if (match) selectedNames.push(a.name);
     return match;
   });
