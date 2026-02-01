@@ -120,13 +120,14 @@ const App: React.FC = () => {
                 {showCustomizer && (
                   <EvolutionCustomizer
                     status={analysis.status}
-                    suggestions={analysis.evolutionSuggestions}
-                    selectedDimensions={analysis.selectedDimensions}
+                    unifiedSuggestion={analysis.unifiedSuggestion}
+                    editedSuggestion={analysis.editedSuggestion}
+                    selectedTrendNames={analysis.selectedTrendNames}
                     iconAnalysis={analysis.entertainmentInsights?.iconAnalysis || null}
+                    functionGuard={analysis.functionGuard}
                     appIcon={appIconPreview}
                     generatedIcon={analysis.generatedIcon || undefined}
-                    onToggleDimension={analysis.toggleDimension}
-                    onUpdateDimension={analysis.updateDimension}
+                    onUpdateSuggestion={analysis.updateEditedSuggestion}
                     onGenerate={analysis.generateEvolution}
                     onReset={handleResetRequest}
                   />

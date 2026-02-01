@@ -5,6 +5,7 @@ import type {
   PsychographicProfile,
   EntertainmentInsights,
   EvolutionSuggestions,
+  EvolutionSuggestionsV2,
   SelectedDimensions,
   IconAnalysis,
   EntertainmentTrends,
@@ -133,6 +134,28 @@ export async function getEvolutionSuggestions(
   return handleResponse<EvolutionSuggestions>(response);
 }
 
+// Response type for V2 includes selectedTrendNames
+export interface EvolutionSuggestionsV2Response extends EvolutionSuggestionsV2 {
+  selectedTrendNames: string[];
+}
+
+export async function getEvolutionSuggestionsV2(
+  iconAnalysis: IconAnalysis,
+  entertainmentTrends: EntertainmentTrends,
+  selectedTrends?: string[]
+): Promise<EvolutionSuggestionsV2Response> {
+  const response = await fetch('/api/evolution-suggestions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      iconAnalysis,
+      entertainmentTrends,
+      selectedTrends,
+    }),
+  });
+  return handleResponse<EvolutionSuggestionsV2Response>(response);
+}
+
 export async function generateEvolutionIcon(
   referenceImage: ScreenshotInput,
   selectedDimensions: SelectedDimensions,
@@ -156,5 +179,30 @@ export async function generateEvolutionIcon(
 
   const data = await handleResponse<{ imageData: string; mimeType: string }>(response);
   // Return raw base64 (consistent with internal handling in EvolutionCustomizer)
+  return data.imageData;
+}
+
+export async function generateFromUnifiedSuggestion(
+  referenceImage: ScreenshotInput,
+  evolutionDirection: string,
+  iconAnalysis?: IconAnalysis,
+  functionGuard?: string[],
+  customPrompt?: string
+): Promise<string> {
+  const response = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: customPrompt || '',
+      size: '2K',
+      referenceImage,
+      evolutionMode: true,
+      evolutionDirection,
+      iconAnalysis,
+      functionGuard,
+    }),
+  });
+
+  const data = await handleResponse<{ imageData: string; mimeType: string }>(response);
   return data.imageData;
 }

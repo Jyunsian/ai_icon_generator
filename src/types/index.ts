@@ -184,6 +184,21 @@ export interface EvolutionSuggestions {
   };
 }
 
+// New unified suggestion types (simplified flow)
+export interface UnifiedSuggestion {
+  evolutionDirection: string;
+  rationale: string;
+  keyElements: string[];
+}
+
+export interface EvolutionSuggestionsV2 {
+  suggestion: UnifiedSuggestion;
+  functionGuard: {
+    warning: string;
+    reason: string;
+  };
+}
+
 export type EvolutionDimension = 'style' | 'pose' | 'costume' | 'mood';
 
 export interface SelectedDimension {

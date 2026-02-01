@@ -71,6 +71,8 @@ interface GenerateRequestBody {
   // New evolution mode fields
   evolutionMode?: boolean;
   selectedDimensions?: SelectedDimensions;
+  // New unified suggestion field (simplified flow)
+  evolutionDirection?: string;
   iconAnalysis?: IconAnalysis;
   functionGuard?: string[];
 }
@@ -104,6 +106,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? body.referenceImage
       : undefined;
     const selectedDimensions = body.selectedDimensions;
+    const evolutionDirection = typeof body.evolutionDirection === 'string'
+      ? sanitizeInput(body.evolutionDirection, MAX_PROMPT_LENGTH)
+      : undefined;
     const iconAnalysis = body.iconAnalysis;
     const functionGuard = Array.isArray(body.functionGuard) ? body.functionGuard : [];
 
@@ -117,8 +122,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Build seed-aware prompt
     let fullPrompt: string;
 
-    // New evolution mode with selected dimensions
-    if (evolutionMode && referenceImage && selectedDimensions) {
+    // New unified suggestion mode (simplified flow)
+    if (evolutionMode && referenceImage && evolutionDirection) {
+      parts.push({
+        inlineData: { data: referenceImage.data, mimeType: referenceImage.mimeType },
+      });
+
+      const coreSubject = iconAnalysis?.coreSubject || '原有主體';
+      const appFunction = iconAnalysis?.appFunction || '原有功能';
+      const mustPreserve = functionGuard.length > 0
+        ? functionGuard.join(', ')
+        : iconAnalysis?.mustPreserve?.join(', ') || '核心識別元素';
+
+      fullPrompt = `娛樂趨勢演化模式：附上的圖片是現有的 App Icon（種子 icon）。
+
+核心主體：${coreSubject}
+App 功能：${appFunction}
+
+演化關鍵規則：
+1. 必須保留：${mustPreserve}
+2. 核心主體必須一眼可辨認 - 這是「演化」不是「重新設計」
+3. 保持 App 功能的視覺暗示
+4. 維持 icon 格式：方形、居中、適合 App Store
+
+演化方向：
+${evolutionDirection}
+
+${prompt ? `額外指示: ${prompt}` : ''}
+
+輸出要求：
+- App Store icon 格式
+- 高保真 3D 渲染
+- 柔和的全局光照
+- 鮮豔但專業的配色
+- 乾淨的邊緣，居中構圖
+- 中性或微漸層背景
+- 必須感覺像種子 icon 的自然演化，而非替換品`;
+
+    // Legacy evolution mode with selected dimensions (backwards compatible)
+    } else if (evolutionMode && referenceImage && selectedDimensions) {
       parts.push({
         inlineData: { data: referenceImage.data, mimeType: referenceImage.mimeType },
       });

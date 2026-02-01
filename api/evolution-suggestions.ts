@@ -64,6 +64,65 @@ function validateEntertainmentTrends(obj: unknown): obj is EntertainmentTrends {
   );
 }
 
+function filterTrendsBySelection(
+  trends: EntertainmentTrends,
+  selectedTrends: string[]
+): { filteredContext: string; selectedNames: string[] } {
+  if (selectedTrends.length === 0) {
+    return { filteredContext: '', selectedNames: [] };
+  }
+
+  const selectedSet = new Set(selectedTrends.map(t => t.toLowerCase()));
+  const selectedNames: string[] = [];
+  const sections: string[] = [];
+
+  // Filter movies
+  const selectedMovies = trends.movies.filter(m => {
+    const match = selectedSet.has(m.title.toLowerCase());
+    if (match) selectedNames.push(m.title);
+    return match;
+  });
+  if (selectedMovies.length > 0) {
+    sections.push(`## 影視趨勢
+${selectedMovies.map(m => `- ${sanitizeInput(m.title)}: ${sanitizeInput(m.relevance)}\n  視覺元素: ${m.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}`);
+  }
+
+  // Filter games
+  const selectedGames = trends.games.filter(g => {
+    const match = selectedSet.has(g.title.toLowerCase());
+    if (match) selectedNames.push(g.title);
+    return match;
+  });
+  if (selectedGames.length > 0) {
+    sections.push(`## 遊戲趨勢
+${selectedGames.map(g => `- ${sanitizeInput(g.title)}: ${sanitizeInput(g.relevance)}\n  視覺元素: ${g.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}`);
+  }
+
+  // Filter anime
+  const selectedAnime = trends.anime.filter(a => {
+    const match = selectedSet.has(a.title.toLowerCase());
+    if (match) selectedNames.push(a.title);
+    return match;
+  });
+  if (selectedAnime.length > 0) {
+    sections.push(`## 動畫趨勢
+${selectedAnime.map(a => `- ${sanitizeInput(a.title)}: ${sanitizeInput(a.relevance)}\n  視覺元素: ${a.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}`);
+  }
+
+  // Filter aesthetics
+  const selectedAesthetics = trends.aesthetics.filter(a => {
+    const match = selectedSet.has(a.name.toLowerCase());
+    if (match) selectedNames.push(a.name);
+    return match;
+  });
+  if (selectedAesthetics.length > 0) {
+    sections.push(`## 美學潮流
+${selectedAesthetics.map(a => `- ${sanitizeInput(a.name)}: ${sanitizeInput(a.description)}\n  例子: ${a.examples.map(e => sanitizeInput(e)).join(', ')}`).join('\n')}`);
+  }
+
+  return { filteredContext: sections.join('\n\n'), selectedNames };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -84,7 +143,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Invalid or missing entertainmentTrends' });
     }
 
-    const { iconAnalysis, entertainmentTrends, selectedTrends } = body;
+    const { iconAnalysis, entertainmentTrends, selectedTrends = [] } = body;
 
     // Sanitize user-provided strings before using in prompt
     const coreSubject = sanitizeInput(iconAnalysis.coreSubject);
@@ -94,27 +153,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const trendsContext = `
-## 影視趨勢
-${entertainmentTrends.movies.map(m => `- ${sanitizeInput(m.title)}: ${sanitizeInput(m.relevance)}\n  視覺元素: ${m.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}
+    // Filter trends to only include user-selected ones
+    const { filteredContext, selectedNames } = filterTrendsBySelection(
+      entertainmentTrends,
+      selectedTrends
+    );
 
-## 遊戲趨勢
-${entertainmentTrends.games.map(g => `- ${sanitizeInput(g.title)}: ${sanitizeInput(g.relevance)}\n  視覺元素: ${g.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}
+    // Build prompt based on whether user selected specific trends
+    const hasSelection = selectedNames.length > 0;
 
-## 動畫趨勢
-${entertainmentTrends.anime.map(a => `- ${sanitizeInput(a.title)}: ${sanitizeInput(a.relevance)}\n  視覺元素: ${a.visualElements.map(v => sanitizeInput(v)).join(', ')}`).join('\n')}
+    const prompt = hasSelection
+      ? `你是一位創意總監與 Icon 設計專家。
 
-## 美學潮流
-${entertainmentTrends.aesthetics.map(a => `- ${sanitizeInput(a.name)}: ${sanitizeInput(a.description)}\n  例子: ${a.examples.map(e => sanitizeInput(e)).join(', ')}`).join('\n')}
-`;
-
-    const selectedTrendsContext = selectedTrends && selectedTrends.length > 0
-      ? `\n用戶特別感興趣的趨勢：${selectedTrends.join(', ')}\n`
-      : '';
-
-    const prompt = `你是一位創意總監與 Icon 設計專家。
-
-基於以下的娛樂趨勢洞察，為這個 App Icon 提出演化方向建議。
+基於用戶選擇的娛樂趨勢，為這個 App Icon 提出一個統一的演化方向建議。
 
 ## 原 Icon 分析
 - 核心主體：${coreSubject}
@@ -122,35 +173,38 @@ ${entertainmentTrends.aesthetics.map(a => `- ${sanitizeInput(a.name)}: ${sanitiz
 - 現有風格：${currentStyle}
 - 必須保留的元素：${mustPreserve.join(', ')}
 
-## 娛樂趨勢
-${trendsContext}
-${selectedTrendsContext}
+## 用戶選擇的趨勢
+${filteredContext}
 
-請在以下 4 個維度提出具體的演化建議：
+請提出一個整合性的演化建議，將所有選定趨勢的視覺元素融合成一個統一且協調的設計方向。
 
-### 1. 風格 (Style)
-如何融入當前視覺美學潮流來改變 Icon 的整體風格？
-- 給出具體的風格建議（如 Y2K 霓虹光暈、Aura 漸層、像素風等）
-- 解釋為什麼這個風格會與目標用戶產生共鳴
-- 提供具體的參考例子
+要求：
+1. 不要分開描述各個趨勢的影響，而是將它們融合成一個連貫的演化概念
+2. 具體描述視覺效果（色彩、光影、質感、元素等）
+3. 解釋這個方向如何保留 Icon 的核心識別同時帶來新鮮感
+4. 提供 3-5 個關鍵視覺元素作為設計指引
 
-### 2. 動作 (Pose)
-可以借鑒哪些熱門 IP 的標誌性姿態或手勢？
-- 給出具體的動作建議（如特定角色的手勢、表情、姿態）
-- 解釋這個動作的文化意義和用戶認知度
-- 提供具體的參考來源
+## 功能守護提醒
+最後，請提醒用戶在演化過程中應該保留哪些元素，以確保：
+1. 用戶仍能認出這是同一個 App
+2. Icon 仍能清楚傳達 App 的功能
 
-### 3. 服裝/道具 (Costume)
-可以融入哪些熱門 IP 的服裝或道具元素？
-- 給出具體的服裝/道具建議
-- 解釋這個元素為什麼會引起用戶共鳴
-- 提供具體的參考來源
+請返回 JSON 格式的建議。`
+      : `你是一位創意總監與 Icon 設計專家。
 
-### 4. 背景/氛圍 (Mood)
-如何調整背景和整體氛圍來呼應當前趨勢？
-- 給出具體的氛圍建議（如漸層、光暈、場景等）
-- 解釋這個氛圍如何增強 Icon 的吸引力
-- 提供具體的參考例子
+用戶尚未選擇任何特定趨勢，請根據 Icon 的特性提供一個通用的品質提升建議。
+
+## 原 Icon 分析
+- 核心主體：${coreSubject}
+- App 功能：${appFunction}
+- 現有風格：${currentStyle}
+- 必須保留的元素：${mustPreserve.join(', ')}
+
+請提出一個品質提升的建議，專注於：
+1. 提升視覺精緻度和現代感
+2. 優化光影和材質表現
+3. 增強色彩層次和對比
+4. 保持核心識別元素
 
 ## 功能守護提醒
 最後，請提醒用戶在演化過程中應該保留哪些元素，以確保：
@@ -167,47 +221,17 @@ ${selectedTrendsContext}
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            suggestions: {
+            suggestion: {
               type: Type.OBJECT,
               properties: {
-                style: {
-                  type: Type.OBJECT,
-                  properties: {
-                    recommendation: { type: Type.STRING },
-                    rationale: { type: Type.STRING },
-                    reference: { type: Type.STRING },
-                  },
-                  required: ['recommendation', 'rationale', 'reference'],
-                },
-                pose: {
-                  type: Type.OBJECT,
-                  properties: {
-                    recommendation: { type: Type.STRING },
-                    rationale: { type: Type.STRING },
-                    reference: { type: Type.STRING },
-                  },
-                  required: ['recommendation', 'rationale', 'reference'],
-                },
-                costume: {
-                  type: Type.OBJECT,
-                  properties: {
-                    recommendation: { type: Type.STRING },
-                    rationale: { type: Type.STRING },
-                    reference: { type: Type.STRING },
-                  },
-                  required: ['recommendation', 'rationale', 'reference'],
-                },
-                mood: {
-                  type: Type.OBJECT,
-                  properties: {
-                    recommendation: { type: Type.STRING },
-                    rationale: { type: Type.STRING },
-                    reference: { type: Type.STRING },
-                  },
-                  required: ['recommendation', 'rationale', 'reference'],
+                evolutionDirection: { type: Type.STRING },
+                rationale: { type: Type.STRING },
+                keyElements: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
                 },
               },
-              required: ['style', 'pose', 'costume', 'mood'],
+              required: ['evolutionDirection', 'rationale', 'keyElements'],
             },
             functionGuard: {
               type: Type.OBJECT,
@@ -218,7 +242,7 @@ ${selectedTrendsContext}
               required: ['warning', 'reason'],
             },
           },
-          required: ['suggestions', 'functionGuard'],
+          required: ['suggestion', 'functionGuard'],
         },
       },
     });
@@ -227,7 +251,11 @@ ${selectedTrendsContext}
     const cleaned = text.replace(/```json\n?|```/g, '').trim();
     const data = JSON.parse(cleaned);
 
-    return res.status(200).json(data);
+    // Add selected trends info to response for display
+    return res.status(200).json({
+      ...data,
+      selectedTrendNames: selectedNames,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Evolution suggestions generation failed';
     return res.status(500).json({ error: message });

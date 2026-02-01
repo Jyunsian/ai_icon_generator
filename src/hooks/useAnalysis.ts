@@ -3,7 +3,7 @@ import type {
   ScreenshotFile,
   AppState,
   EntertainmentInsights,
-  EvolutionSuggestions,
+  UnifiedSuggestion,
   SelectedDimensions,
   EvolutionDimension,
   EvolutionInput,
@@ -33,10 +33,15 @@ interface AnalysisState {
   // New entertainment insights flow
   evolutionInput: EvolutionInput;
   entertainmentInsights: EntertainmentInsights | null;
-  evolutionSuggestions: EvolutionSuggestions | null;
-  selectedDimensions: SelectedDimensions;
+  // New unified suggestion flow
+  unifiedSuggestion: UnifiedSuggestion | null;
+  editedSuggestion: string;
+  selectedTrendNames: string[];
+  functionGuard: { warning: string; reason: string } | null;
   selectedTrends: string[];
   generatedIcon: string | null;
+  // Legacy (kept for backwards compatibility)
+  selectedDimensions: SelectedDimensions;
 }
 
 interface UseAnalysisReturn extends AnalysisState {
@@ -50,9 +55,12 @@ interface UseAnalysisReturn extends AnalysisState {
   startEntertainmentAnalysis: () => Promise<void>;
   setSelectedTrends: (trends: string[]) => void;
   startEvolutionSuggestions: () => Promise<void>;
+  // New unified suggestion methods
+  updateEditedSuggestion: (value: string) => void;
+  generateEvolution: (customPrompt?: string) => Promise<void>;
+  // Legacy methods (kept for backwards compatibility)
   toggleDimension: (dimension: EvolutionDimension) => void;
   updateDimension: (dimension: EvolutionDimension, value: string) => void;
-  generateEvolution: (customPrompt?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -62,10 +70,13 @@ const initialState: AnalysisState = {
   appInput: '',
   evolutionInput: defaultEvolutionInput,
   entertainmentInsights: null,
-  evolutionSuggestions: null,
-  selectedDimensions: defaultSelectedDimensions,
+  unifiedSuggestion: null,
+  editedSuggestion: '',
+  selectedTrendNames: [],
+  functionGuard: null,
   selectedTrends: [],
   generatedIcon: null,
+  selectedDimensions: defaultSelectedDimensions,
 };
 
 export function useAnalysis(
@@ -110,7 +121,7 @@ export function useAnalysis(
           appIcon: data,
         },
       }));
-    } catch (error) {
+    } catch {
       onError('Failed to process image');
     }
   }, [onError]);
@@ -250,27 +261,21 @@ export function useAnalysis(
     setState((prev) => ({ ...prev, status: 'SUGGESTING' }));
 
     try {
-      const result = await api.getEvolutionSuggestions(
+      const result = await api.getEvolutionSuggestionsV2(
         entertainmentInsights.iconAnalysis,
         entertainmentInsights.entertainmentTrends,
         selectedTrends
       );
 
-      // Initialize selected dimensions with suggestions
-      const newSelectedDimensions: SelectedDimensions = {
-        style: { enabled: true, value: result.suggestions.style.recommendation },
-        pose: { enabled: false, value: result.suggestions.pose.recommendation },
-        costume: { enabled: false, value: result.suggestions.costume.recommendation },
-        mood: { enabled: true, value: result.suggestions.mood.recommendation },
-      };
-
       setState((prev) => ({
         ...prev,
-        evolutionSuggestions: result,
-        selectedDimensions: newSelectedDimensions,
+        unifiedSuggestion: result.suggestion,
+        editedSuggestion: result.suggestion.evolutionDirection,
+        selectedTrendNames: result.selectedTrendNames,
+        functionGuard: result.functionGuard,
         status: 'CUSTOMIZATION',
       }));
-      onSuccess?.('Evolution suggestions ready');
+      onSuccess?.('Evolution suggestion ready');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Evolution suggestions failed';
       onError(message);
@@ -278,6 +283,11 @@ export function useAnalysis(
     }
   }, [state, onError, onSuccess]);
 
+  const updateEditedSuggestion = useCallback((value: string) => {
+    setState((prev) => ({ ...prev, editedSuggestion: value }));
+  }, []);
+
+  // Legacy methods kept for backwards compatibility
   const toggleDimension = useCallback((dimension: EvolutionDimension) => {
     setState((prev) => ({
       ...prev,
@@ -308,21 +318,15 @@ export function useAnalysis(
   );
 
   const generateEvolution = useCallback(async (customPrompt?: string) => {
-    const { screenshots, entertainmentInsights, selectedDimensions, evolutionSuggestions } = state;
+    const { screenshots, entertainmentInsights, editedSuggestion, functionGuard } = state;
 
     if (screenshots.length === 0) {
       onError('App icon required');
       return;
     }
 
-    const hasAnyEnabled =
-      selectedDimensions.style.enabled ||
-      selectedDimensions.pose.enabled ||
-      selectedDimensions.costume.enabled ||
-      selectedDimensions.mood.enabled;
-
-    if (!hasAnyEnabled) {
-      onError('Please enable at least one evolution dimension');
+    if (!editedSuggestion.trim()) {
+      onError('Evolution direction is required');
       return;
     }
 
@@ -335,15 +339,15 @@ export function useAnalysis(
       };
 
       const iconAnalysis: IconAnalysis | undefined = entertainmentInsights?.iconAnalysis;
-      const functionGuard = evolutionSuggestions?.functionGuard.warning
-        ? entertainmentInsights?.iconAnalysis.mustPreserve
+      const functionGuardArr = functionGuard?.warning
+        ? entertainmentInsights?.iconAnalysis?.mustPreserve
         : undefined;
 
-      const result = await api.generateEvolutionIcon(
+      const result = await api.generateFromUnifiedSuggestion(
         referenceImage,
-        selectedDimensions,
+        editedSuggestion,
         iconAnalysis,
-        functionGuard,
+        functionGuardArr,
         customPrompt
       );
 
@@ -375,6 +379,7 @@ export function useAnalysis(
     startEntertainmentAnalysis,
     setSelectedTrends,
     startEvolutionSuggestions,
+    updateEditedSuggestion,
     toggleDimension,
     updateDimension,
     generateEvolution,
